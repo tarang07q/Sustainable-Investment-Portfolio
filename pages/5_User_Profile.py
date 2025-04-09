@@ -115,7 +115,7 @@ else:
         <div class="profile-info">
             <h2>{user['full_name']}</h2>
             <p>{user['email']}</p>
-            <p>Member since: {user['created_at'][:10]}</p>
+            <p>Member since: {user['created_at'].split('T')[0] if isinstance(user['created_at'], str) else user['created_at'].strftime('%Y-%m-%d')}</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
