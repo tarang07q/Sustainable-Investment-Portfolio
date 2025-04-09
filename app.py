@@ -8,10 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.supabase import is_authenticated, get_current_user
 from utils.quotes import get_random_quote
 from utils.financial_data import get_all_assets, get_market_trends
-
-# Initialize theme in session state if not present
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
+from utils.theme import apply_theme_css
 
 st.set_page_config(
     page_title="Sustainable Investment Portfolio",
@@ -19,124 +16,50 @@ st.set_page_config(
     layout="wide"
 )
 
-# Theme toggle in sidebar
-with st.sidebar:
-    if st.button("🌓 Toggle Theme"):
-        st.session_state.theme = 'dark' if st.session_state.theme == 'light' else 'light'
-        st.rerun()
+# Theme is now handled by the theme utility
 
 # Apply theme-specific styles
-theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
-theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
-theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
-
-# Custom CSS with dynamic theming
-st.markdown(f"""
-    <style>
-    .main {{
-        padding: 2rem;
-        background-color: {theme_bg_color};
-        color: {theme_text_color};
-    }}
-    .stButton>button {{
-        width: 100%;
-    }}
-    .recommendation-card {{
-        background-color: {theme_secondary_bg};
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-        color: {theme_text_color};
-    }}
-    .css-1v3fvcr {{
-        background-color: {theme_bg_color};
-    }}
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 2px;
-    }}
-    .stTabs [data-baseweb="tab"] {{
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: {theme_secondary_bg};
-        border-radius: 4px 4px 0px 0px;
-        gap: 1px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        color: {theme_text_color};
-    }}
-    .stTabs [aria-selected="true"] {{
-        background-color: #4CAF50;
-        color: white;
-    }}
-    .quote-container {{
-        background-color: {theme_secondary_bg};
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 1rem 0 2rem 0;
-        border-left: 5px solid #4CAF50;
-        color: {theme_text_color};
-    }}
-    .auth-banner {{
-        background-color: {theme_secondary_bg};
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: {theme_text_color};
-    }}
-    .trend-card {{
-        background-color: {theme_secondary_bg};
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        margin: 0.5rem 0;
-        border-left: 3px solid #2196F3;
-        color: {theme_text_color};
-    }}
-    .asset-card {{
-        background-color: {theme_secondary_bg};
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-        color: {theme_text_color};
-    }}
-    </style>
-""", unsafe_allow_html=True)
+theme_colors = apply_theme_css()
+plotly_template = theme_colors['plotly_template']
 
 # Check if user is authenticated
 if not is_authenticated():
     # Authentication banner
     st.markdown("""
-    <div class="auth-banner">
+    <div class="auth-banner" style="display: flex; justify-content: space-between; align-items: center; background-color: #1e2530; padding: 1rem 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); border-left: 4px solid #4CAF50;">
         <div>
-            <h3 style="margin: 0;">🔐 Sign in to access all features</h3>
-            <p style="margin: 0;">Create an account or sign in to save portfolios and get personalized recommendations.</p>
+            <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center;">
+                <span style="margin-right: 8px; font-size: 1.3rem;">🔐</span> Sign in to access all features
+            </h3>
+            <p style="margin: 0.3rem 0 0 0; color: #e0e0e0;">Create an account or sign in to save portfolios and get personalized recommendations.</p>
         </div>
         <div>
-            <a href="/Authentication" target="_self"><button style="background-color: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Sign In / Sign Up</button></a>
+            <a href="/Authentication" target="_self" style="text-decoration: none;">
+                <button style="background-color: #4CAF50; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    Sign In / Sign Up
+                </button>
+            </a>
         </div>
     </div>
     """, unsafe_allow_html=True)
 else:
     # Welcome message for authenticated users
     user = get_current_user()
-    st.markdown(f"""<div style="background-color: #e8f5e9; padding: 1rem; border-radius: 10px; margin-bottom: 2rem;">
-        <h3 style="margin: 0;">👋 Welcome back, {user['full_name']}!</h3>
-        <p style="margin: 0;">Your sustainable investment journey continues. Check out the latest market trends and recommendations.</p>
+    st.markdown(f"""<div style="background-color: #1e2530; padding: 1.2rem; border-radius: 10px; margin-bottom: 2rem; border-left: 4px solid #4CAF50; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+        <h3 style="margin: 0; color: #ffffff;">👋 Welcome back, {user['full_name']}!</h3>
+        <p style="margin: 0.5rem 0 0 0; color: #e0e0e0;">Your sustainable investment journey continues. Check out the latest market trends and recommendations.</p>
     </div>""", unsafe_allow_html=True)
 
 # Header
-st.title("🌱 Sustainable Investment Portfolio")
-st.markdown("*AI-powered investment platform for sustainable and profitable investing*")
+st.markdown("<h1 style='margin-bottom: 0.2rem; font-size: 2.5rem;'>🌱 Sustainable Investment Portfolio</h1>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 1.2rem; margin-bottom: 2rem; font-style: italic;'>AI-powered investment platform for sustainable and profitable investing</p>", unsafe_allow_html=True)
 
 # Display a random quote
 quote = get_random_quote()
 st.markdown(f"""
 <div class="quote-container">
     <p style="font-style: italic; font-size: 1.1rem;">"{quote['quote']}"</p>
-    <p style="text-align: right; font-weight: bold;">— {quote['author']}</p>
+    <p style="text-align: right; font-weight: 500;">— {quote['author']}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -149,54 +72,95 @@ to provide personalized recommendations.
 """)
 
 # Feature highlights
+st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # Add some spacing
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("### 📊 Data-Driven Insights")
-    st.write("""
-    Access comprehensive ESG ratings and financial metrics for stocks and cryptocurrencies.
-    Our AI analyzes multiple data sources to provide you with the most accurate information.
-    """)
-    if st.button("Explore Analytics", key="analytics_btn"):
-        st.switch_page("pages/1_Market_Explorer.py")
+    st.markdown("""
+    <div class="feature-card">
+        <div>
+            <h3 style="margin-top: 0;"><span style="font-size: 1.5rem;">📊</span> Data-Driven Insights</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Access comprehensive ESG ratings and financial metrics for stocks and cryptocurrencies.
+                Our AI analyzes multiple data sources to provide you with the most accurate information.
+            </p>
+        </div>
+        <div>
+            <button onclick="window.location.href='/Market_Explorer'" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: 500;">Explore Analytics</button>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with col2:
-    st.markdown("### 💼 Portfolio Management")
-    st.write("""
-    Create and manage custom portfolios that align with your financial goals and sustainability values.
-    Track performance, assess risks, and understand your impact.
-    """)
-    if st.button("Manage Portfolios", key="portfolio_btn"):
-        st.switch_page("pages/2_Portfolio_Manager.py")
+    st.markdown("""
+    <div class="feature-card">
+        <div>
+            <h3 style="margin-top: 0;"><span style="font-size: 1.5rem;">💼</span> Portfolio Management</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Create and manage custom portfolios that align with your financial goals and sustainability values.
+                Track performance, assess risks, and understand your impact.
+            </p>
+        </div>
+        <div>
+            <button onclick="window.location.href='/Portfolio_Manager'" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: 500;">Manage Portfolios</button>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with col3:
-    st.markdown("### 🤖 AI Recommendations")
-    st.write("""
-    Receive personalized investment recommendations based on your risk profile, financial goals,
-    and sustainability preferences. Our AI continuously learns from market trends and ESG developments.
-    """)
-    if st.button("Get Recommendations", key="recommendations_btn"):
-        st.switch_page("pages/3_AI_Recommendations.py")
+    st.markdown("""
+    <div class="feature-card">
+        <div>
+            <h3 style="margin-top: 0;"><span style="font-size: 1.5rem;">🤖</span> AI Recommendations</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Receive personalized investment recommendations based on your risk profile, financial goals,
+                and sustainability preferences. Our AI continuously learns from market trends and ESG developments.
+            </p>
+        </div>
+        <div>
+            <button onclick="window.location.href='/AI_Recommendations'" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: 500;">Get Recommendations</button>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Market trends section
-st.markdown("---")
-st.markdown("## Latest Market Trends")
+st.markdown("<hr style='margin: 2rem 0; border-color: #e0e0e0;'>", unsafe_allow_html=True)
+st.markdown("<h2 style='margin-bottom: 1.5rem;'>Latest Market Trends</h2>", unsafe_allow_html=True)
 
 # Get market trends
 market_trends = get_market_trends()
 
+# Create columns for trends
+col1, col2, col3 = st.columns(3)
+cols = [col1, col2, col3]
+
 # Display top 3 market trends
 for i, trend in enumerate(market_trends[:3]):
-    st.markdown(f"""
-    <div class="trend-card">
-        <h4>{trend['title']} <span style="float:right;font-size:0.8rem;color:#666;">Confidence: {trend['confidence']}%</span></h4>
-        <p>{trend['description']}</p>
-        <p><strong>Impact:</strong> {trend['impact']}</p>
-    </div>
-    """, unsafe_allow_html=True)
+    with cols[i]:
+        # Determine impact color
+        impact_color = "#4CAF50"  # Default green
+        if "negative" in trend['impact'].lower():
+            impact_color = "#F44336"  # Red for negative
+        elif "neutral" in trend['impact'].lower():
+            impact_color = "#FF9800"  # Orange for neutral
+
+        st.markdown(f"""
+        <div class="trend-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="margin: 0; font-size: 1.1rem;">{trend['title']}</h4>
+                <span style="font-size: 0.8rem; color: #e0e0e0; background-color: #2c3440; padding: 0.2rem 0.5rem; border-radius: 4px;">Confidence: {trend['confidence']}%</span>
+            </div>
+            <p style="margin-bottom: 1rem; font-size: 0.95rem;">{trend['description']}</p>
+            <div style="display: flex; align-items: center;">
+                <span style="font-weight: 600; margin-right: 0.5rem;">Impact:</span>
+                <span style="color: {impact_color}; font-weight: 500;">{trend['impact']}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Top performing assets
-st.markdown("## Top Performing Sustainable Assets")
+st.markdown("<h2 style='margin-top: 2rem;'>Top Performing Sustainable Assets</h2>", unsafe_allow_html=True)
 
 # Get all assets
 all_assets = get_all_assets()
@@ -211,15 +175,39 @@ cols = [col1, col2, col3, col4, col5]
 for i, asset in enumerate(top_assets):
     with cols[i]:
         price_change = asset['price_change_24h']
-        price_color = "green" if price_change > 0 else "red"
+        price_color = "#4CAF50" if price_change > 0 else "#F44336"
+
+        # Calculate a performance indicator (0-100) for the progress bar
+        performance = min(100, max(0, asset['roi_1y'] / 2))
 
         st.markdown(f"""
-        <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; height: 100%;">
-            <h4>{asset['name']} ({asset['symbol']})</h4>
-            <p><strong>Price:</strong> ${asset['current_price']:.2f}</p>
-            <p><strong>24h:</strong> <span style="color:{price_color};">{price_change:.2f}%</span></p>
-            <p><strong>1Y ROI:</strong> {asset['roi_1y']}%</p>
-            <p><strong>ESG Score:</strong> {asset['esg_score']:.1f}/100</p>
+        <div class="asset-card" style="height: auto;">
+            <h4 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.1rem;">{asset['name']} <span style="font-size: 0.9rem; color: #666;">({asset['symbol']})</span></h4>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">Price:</span>
+                <span>${asset['current_price']:.2f}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">24h:</span>
+                <span style="color:{price_color};">{price_change:.2f}%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">1Y ROI:</span>
+                <span>{asset['roi_1y']}%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">ESG Score:</span>
+                <span>{asset['esg_score']:.1f}/100</span>
+            </div>
+            <div style="margin-top: 0.8rem;">
+                <div style="height: 6px; background-color: #2c3440; border-radius: 3px; overflow: hidden;">
+                    <div style="height: 100%; width: {performance}%; background-color: #4CAF50;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 0.2rem;">
+                    <span>Performance</span>
+                    <span>{performance:.0f}%</span>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 

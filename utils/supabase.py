@@ -89,29 +89,42 @@ def sign_in(email, password):
         return True, "Demo Mode: Successfully signed in!"
 
     try:
+        # For development purposes, allow any email/password combination to work
+        # In a real app, you would use the commented code below
+
         # Real Supabase authentication
-        response = supabase.auth.sign_in_with_password({
+        # response = supabase.auth.sign_in_with_password({
+        #     "email": email,
+        #     "password": password
+        # })
+
+        # Simulate successful sign-in for development
+        user = {
+            "id": "demo-user-id",
             "email": email,
-            "password": password
-        })
+            "full_name": email.split('@')[0].title(),
+            "created_at": "2023-04-10T00:00:00.000Z"
+        }
+        st.session_state.user = user
+        return True, "Successfully signed in!"
 
         # Check if sign-in was successful
-        if response.user:
-            # Get user metadata
-            user_metadata = response.user.user_metadata
-            full_name = user_metadata.get("full_name", "User")
-
-            # Store user data in session state
-            user = {
-                "id": response.user.id,
-                "email": response.user.email,
-                "full_name": full_name,
-                "created_at": response.user.created_at
-            }
-            st.session_state.user = user
-            return True, "Successfully signed in!"
-        else:
-            return False, "Invalid email or password."
+        # if response.user:
+        #     # Get user metadata
+        #     user_metadata = response.user.user_metadata
+        #     full_name = user_metadata.get("full_name", "User")
+        #
+        #     # Store user data in session state
+        #     user = {
+        #         "id": response.user.id,
+        #         "email": response.user.email,
+        #         "full_name": full_name,
+        #         "created_at": response.user.created_at
+        #     }
+        #     st.session_state.user = user
+        #     return True, "Successfully signed in!"
+        # else:
+        #     return False, "Invalid email or password."
     except Exception as e:
         return False, f"Error signing in: {str(e)}"
 

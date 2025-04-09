@@ -11,6 +11,8 @@ import os
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.theme import apply_theme_css
+
 # Set page config
 st.set_page_config(
     page_title="Market Explorer - Sustainable Investment Portfolio",
@@ -18,35 +20,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get theme from session state
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
-
 # Apply theme-specific styles
-theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
-theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
-theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
-
-# Custom CSS with dynamic theming
-st.markdown(f"""
-    <style>
-    .main {{
-        padding: 2rem;
-        background-color: {theme_bg_color};
-        color: {theme_text_color};
-    }}
-    .stButton>button {{
-        width: 100%;
-    }}
-    .asset-card {{
-        background-color: {theme_secondary_bg};
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-        color: {theme_text_color};
-    }}
-    </style>
-""", unsafe_allow_html=True)
+theme_colors = apply_theme_css()
+plotly_template = theme_colors['plotly_template']
 
 # Generate dummy stock data
 def generate_stock_data() -> pd.DataFrame:
@@ -313,93 +289,109 @@ st.dataframe(
 
 # Asset details
 st.markdown("## Asset Details")
-selected_asset = st.selectbox(
-    "Select an asset to view details",
-    options=filtered_df['Name'].tolist(),
-    index=0
-)
 
-asset_data = filtered_df[filtered_df['Name'] == selected_asset].iloc[0]
-
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    # Historical price chart
-    historical_data = generate_historical_data(
-        asset_data['Ticker'],
-        volatility=asset_data['Volatility']*100,
-        trend=asset_data['ROI_1Y']/365
+# Check if there are any assets in the filtered dataframe
+if not filtered_df.empty:
+    selected_asset = st.selectbox(
+        "Select an asset to view details",
+        options=filtered_df['Name'].tolist(),
+        index=0
     )
 
-    fig = px.line(
-        historical_data,
-        x='Date',
-        y='Price',
-        title=f"{asset_data['Name']} ({asset_data['Ticker']}) - 6 Month Price History",
-        template=plotly_template
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    # Get the matching rows
+    matching_rows = filtered_df[filtered_df['Name'] == selected_asset]
 
-    # ESG breakdown
-    st.markdown("### ESG Score Breakdown")
-    esg_data = {
-        'Category': ['Environmental', 'Social', 'Governance'],
-        'Score': [
-            asset_data['Environmental_Score'],
-            asset_data['Social_Score'],
-            asset_data['Governance_Score']
-        ]
-    }
-    esg_df = pd.DataFrame(esg_data)
+    # Check if there are any matching rows
+    if not matching_rows.empty:
+        asset_data = matching_rows.iloc[0]
+    else:
+        st.warning(f"No data found for {selected_asset}. Please select another asset.")
+        st.stop()
+else:
+    st.warning("No assets match the current filters. Please adjust your filter criteria.")
+    st.stop()
 
-    fig = px.bar(
-        esg_df,
-        x='Category',
-        y='Score',
-        color='Category',
-        title='ESG Component Scores',
-        color_discrete_map={
-            'Environmental': 'green',
-            'Social': 'blue',
-            'Governance': 'purple'
-        },
-        template=plotly_template
-    )
-    st.plotly_chart(fig, use_container_width=True)
+# Only display asset details if we have valid data
+if 'asset_data' in locals():
+    col1, col2 = st.columns([2, 1])
 
-with col2:
-    st.markdown(f"### {asset_data['Name']} ({asset_data['Ticker']})")
-    st.markdown(f"**Sector:** {asset_data['Sector']}")
-    st.markdown(f"**Asset Type:** {asset_data['Asset_Type']}")
-    st.markdown(f"**Current Price:** ${asset_data['Current_Price']:.2f}")
+    with col1:
+        # Historical price chart
+        historical_data = generate_historical_data(
+            asset_data['Ticker'],
+            volatility=asset_data['Volatility']*100,
+            trend=asset_data['ROI_1Y']/365
+        )
 
-    # Price change with color
-    price_change = asset_data['Price_Change_24h']
-    price_color = "green" if price_change > 0 else "red"
-    st.markdown(f"**24h Change:** <span style='color:{price_color}'>{price_change:.2f}%</span>", unsafe_allow_html=True)
+        fig = px.line(
+            historical_data,
+            x='Date',
+            y='Price',
+            title=f"{asset_data['Name']} ({asset_data['Ticker']}) - 6 Month Price History",
+            template=plotly_template
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown(f"**Market Cap:** ${asset_data['Market_Cap_B']:.2f}B")
-    st.markdown(f"**1Y ROI:** {asset_data['ROI_1Y']:.2f}%")
-    st.markdown(f"**Volatility:** {asset_data['Volatility']:.2f}")
-    st.markdown(f"**ESG Score:** {asset_data['ESG_Score']:.1f}/100")
+        # ESG breakdown
+        st.markdown("### ESG Score Breakdown")
+        esg_data = {
+            'Category': ['Environmental', 'Social', 'Governance'],
+            'Score': [
+                asset_data['Environmental_Score'],
+                asset_data['Social_Score'],
+                asset_data['Governance_Score']
+            ]
+        }
+        esg_df = pd.DataFrame(esg_data)
 
-    # SDG alignment
-    st.markdown("**SDG Alignment:**")
-    sdg_list = asset_data['SDG_Alignment']
-    sdg_badges = " ".join([f"<span style='background-color:#f0f2f6;padding:3px 8px;border-radius:10px;margin-right:5px;'>SDG {sdg}</span>" for sdg in sdg_list])
-    st.markdown(sdg_badges, unsafe_allow_html=True)
+        fig = px.bar(
+            esg_df,
+            x='Category',
+            y='Score',
+            color='Category',
+            title='ESG Component Scores',
+            color_discrete_map={
+                'Environmental': 'green',
+                'Social': 'blue',
+                'Governance': 'purple'
+            },
+            template=plotly_template
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Carbon footprint
-    st.markdown(f"**Carbon Footprint:** {asset_data['Carbon_Footprint']:.1f} tons CO2e")
-    st.markdown(f"**Carbon Reduction Target:** {asset_data['Carbon_Reduction_Target']:.1f}%")
+    with col2:
+        st.markdown(f"### {asset_data['Name']} ({asset_data['Ticker']})")
+        st.markdown(f"**Sector:** {asset_data['Sector']}")
+        st.markdown(f"**Asset Type:** {asset_data['Asset_Type']}")
+        st.markdown(f"**Current Price:** ${asset_data['Current_Price']:.2f}")
 
-    # AI recommendation
-    recommendation = asset_data['AI_Recommendation']
-    rec_color = "green" if recommendation == '🟢 Strong Buy' else "gold" if recommendation == '🟡 Hold' else "red"
-    st.markdown(f"**AI Recommendation:** <span style='color:{rec_color};font-weight:bold'>{recommendation}</span>", unsafe_allow_html=True)
+        # Price change with color
+        price_change = asset_data['Price_Change_24h']
+        price_color = "green" if price_change > 0 else "red"
+        st.markdown(f"**24h Change:** <span style='color:{price_color}'>{price_change:.2f}%</span>", unsafe_allow_html=True)
 
-    # Add to portfolio button
-    st.button("Add to Portfolio", key=f"add_{asset_data['Ticker']}")
+        st.markdown(f"**Market Cap:** ${asset_data['Market_Cap_B']:.2f}B")
+        st.markdown(f"**1Y ROI:** {asset_data['ROI_1Y']:.2f}%")
+        st.markdown(f"**Volatility:** {asset_data['Volatility']:.2f}")
+        st.markdown(f"**ESG Score:** {asset_data['ESG_Score']:.1f}/100")
 
-    # Set price alert button
-    st.button("Set Price Alert", key=f"alert_{asset_data['Ticker']}")
+        # SDG alignment
+        st.markdown("**SDG Alignment:**")
+        sdg_list = asset_data['SDG_Alignment']
+        sdg_badges = " ".join([f"<span style='background-color:#f0f2f6;padding:3px 8px;border-radius:10px;margin-right:5px;'>SDG {sdg}</span>" for sdg in sdg_list])
+        st.markdown(sdg_badges, unsafe_allow_html=True)
+
+        # Carbon footprint
+        st.markdown(f"**Carbon Footprint:** {asset_data['Carbon_Footprint']:.1f} tons CO2e")
+        st.markdown(f"**Carbon Reduction Target:** {asset_data['Carbon_Reduction_Target']:.1f}%")
+
+        # AI recommendation
+        recommendation = asset_data['AI_Recommendation']
+        rec_color = "green" if recommendation == '🟢 Strong Buy' else "gold" if recommendation == '🟡 Hold' else "red"
+        st.markdown(f"**AI Recommendation:** <span style='color:{rec_color};font-weight:bold'>{recommendation}</span>", unsafe_allow_html=True)
+
+        # Add to portfolio button
+        st.button("Add to Portfolio", key=f"add_{asset_data['Ticker']}")
+
+        # Set price alert button
+        st.button("Set Price Alert", key=f"alert_{asset_data['Ticker']}")

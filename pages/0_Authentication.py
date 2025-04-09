@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.supabase import sign_up, sign_in, sign_in_with_google, is_authenticated, get_current_user
 from utils.quotes import get_random_sustainable_quote
+from utils.theme import apply_theme_css
 
 # Set page config
 st.set_page_config(
@@ -15,66 +16,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get theme from session state
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
-
 # Apply theme-specific styles
-theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
-theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
-theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
-theme_card_bg = "#262730" if st.session_state.theme == "dark" else "#f8f9fa"
-
-# Custom CSS with dynamic theming
-st.markdown(f"""
-    <style>
-    .main {{
-        padding: 2rem;
-        background-color: {theme_bg_color};
-        color: {theme_text_color};
-    }}
-    .auth-container {{
-        max-width: 500px;
-        margin: 0 auto;
-        padding: 2rem;
-        background-color: {theme_card_bg};
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        color: {theme_text_color};
-    }}
-    .auth-tabs {{
-        margin-bottom: 1.5rem;
-    }}
-    .quote-container {{
-        background-color: {theme_secondary_bg};
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 2rem 0;
-        border-left: 5px solid #4CAF50;
-        color: {theme_text_color};
-    }}
-    .stButton>button {{
-        width: 100%;
-    }}
-    .google-btn {{
-        background-color: #4285F4;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        width: 100%;
-        margin-top: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }}
-    .google-btn img {{
-        margin-right: 10px;
-        height: 20px;
-    }}
-    </style>
-""", unsafe_allow_html=True)
+theme_colors = apply_theme_css()
 
 # Check if user is already authenticated
 if is_authenticated():

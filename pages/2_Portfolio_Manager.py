@@ -4,13 +4,14 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-import random
 import json
 import sys
 import os
 
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.theme import apply_theme_css
 
 # Set page config
 st.set_page_config(
@@ -19,47 +20,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get theme from session state
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
-
 # Apply theme-specific styles
-theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
-theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
-theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
-theme_card_bg = "#262730" if st.session_state.theme == "dark" else "white"
-
-# Set Plotly theme based on app theme
-plotly_template = "plotly_dark" if st.session_state.theme == "dark" else "plotly_white"
-
-# Custom CSS with dynamic theming
-st.markdown(f"""
-    <style>
-    .main {{
-        padding: 2rem;
-        background-color: {theme_bg_color};
-        color: {theme_text_color};
-    }}
-    .stButton>button {{
-        width: 100%;
-    }}
-    .portfolio-card {{
-        background-color: {theme_secondary_bg};
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-        color: {theme_text_color};
-    }}
-    .metric-card {{
-        background-color: {theme_card_bg};
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        margin: 0.5rem 0;
-        color: {theme_text_color};
-    }}
-    </style>
-""", unsafe_allow_html=True)
+theme_colors = apply_theme_css()
+plotly_template = theme_colors['plotly_template']
 
 # Generate dummy portfolio data
 def generate_portfolio_data():
@@ -584,26 +547,187 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("### Download Reports")
 col1, col2, col3 = st.columns(3)
 
+# Generate PDF report content
+def generate_portfolio_report():
+    import io
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+
+    # Create content
+    content = []
+
+    # Title
+    title_style = styles["Title"]
+    content.append(Paragraph("Sustainable Investment Portfolio Report", title_style))
+    content.append(Spacer(1, 12))
+
+    # Calculate portfolio values from the current portfolio data
+    total_value = sum(asset['current_value'] for asset in portfolio['assets'])
+    initial_value = sum(asset['purchase_value'] for asset in portfolio['assets'])
+    annual_return = ((total_value / initial_value) ** (1/1.5) - 1) * 100  # Assuming 1.5 years since purchase
+    avg_esg = sum(asset['esg_score'] * asset['allocation'] for asset in portfolio['assets'])
+
+    # Calculate asset type allocation
+    allocation = {}
+    for asset in portfolio['assets']:
+        asset_type = asset['asset_type']
+        if asset_type not in allocation:
+            allocation[asset_type] = 0
+        allocation[asset_type] += asset['allocation'] * 100
+
+    # Portfolio summary
+    content.append(Paragraph("Portfolio Summary", styles["Heading1"]))
+    content.append(Paragraph(f"Total Value: ${total_value:,.2f}", styles["Normal"]))
+    content.append(Paragraph(f"Annual Return: {annual_return:.2f}%", styles["Normal"]))
+    content.append(Paragraph(f"ESG Score: {avg_esg:.1f}/100", styles["Normal"]))
+    content.append(Spacer(1, 12))
+
+    # Asset allocation table
+    content.append(Paragraph("Asset Allocation", styles["Heading2"]))
+    allocation_data = [["Asset Type", "Allocation %"]]
+    for asset_type, alloc in allocation.items():
+        allocation_data.append([asset_type, f"{alloc:.1f}%"])
+
+    allocation_table = Table(allocation_data, colWidths=[300, 100])
+    allocation_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    content.append(allocation_table)
+    content.append(Spacer(1, 12))
+
+    # Holdings table
+    content.append(Paragraph("Holdings", styles["Heading2"]))
+    holdings_data = [["Asset", "Ticker", "Shares", "Value", "ESG Score"]]
+    for asset in portfolio['assets']:
+        holdings_data.append([
+            asset['name'],
+            asset['ticker'],
+            str(asset['shares']),
+            f"${asset['current_value']:,.2f}",
+            f"{asset['esg_score']:.1f}"
+        ])
+
+    holdings_table = Table(holdings_data, colWidths=[150, 60, 60, 100, 80])
+    holdings_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    content.append(holdings_table)
+
+    # Build the PDF
+    doc.build(content)
+    buffer.seek(0)
+    return buffer
+
+# Generate impact report
+def generate_impact_report():
+    import io
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+
+    # Create content
+    content = []
+
+    # Title
+    title_style = styles["Title"]
+    content.append(Paragraph("Sustainable Investment Impact Report", title_style))
+    content.append(Spacer(1, 12))
+
+    # Use risk metrics from the global variable
+    # Impact summary
+    content.append(Paragraph("Impact Summary", styles["Heading1"]))
+    content.append(Paragraph(f"Carbon Footprint: {risk_metrics['carbon_intensity']} tCO2e/$M", styles["Normal"]))
+    content.append(Paragraph(f"SDG Alignment: {risk_metrics['sdg_alignment']} SDGs", styles["Normal"]))
+    content.append(Paragraph(f"Controversy Exposure: {risk_metrics['controversy_exposure']}", styles["Normal"]))
+    content.append(Spacer(1, 12))
+
+    # SDG Contributions
+    content.append(Paragraph("SDG Contributions", styles["Heading2"]))
+    sdg_data = [["SDG", "Contribution Level"]]
+    for sdg, level in zip([1, 7, 12, 13], ["High", "Medium", "High", "Medium"]):
+        sdg_data.append([f"SDG {sdg}", level])
+
+    sdg_table = Table(sdg_data, colWidths=[200, 200])
+    sdg_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    content.append(sdg_table)
+    content.append(Spacer(1, 12))
+
+    # Build the PDF
+    doc.build(content)
+    buffer.seek(0)
+    return buffer
+
 with col1:
-    st.download_button(
-        label="Download Portfolio Report",
-        data="This is a placeholder for the portfolio report PDF",
-        file_name="portfolio_report.pdf",
-        mime="application/pdf"
-    )
+    try:
+        pdf_buffer = generate_portfolio_report()
+        st.download_button(
+            label="Download Portfolio Report",
+            data=pdf_buffer,
+            file_name="portfolio_report.pdf",
+            mime="application/pdf",
+            key="portfolio_report"
+        )
+    except Exception as e:
+        st.error(f"Error generating portfolio report: {str(e)}")
+        st.download_button(
+            label="Download Portfolio Report",
+            data="This is a placeholder for the portfolio report PDF",
+            file_name="portfolio_report.pdf",
+            mime="application/pdf"
+        )
 
 with col2:
-    st.download_button(
-        label="Download Impact Report",
-        data="This is a placeholder for the impact report PDF",
-        file_name="impact_report.pdf",
-        mime="application/pdf"
-    )
+    try:
+        impact_buffer = generate_impact_report()
+        st.download_button(
+            label="Download Impact Report",
+            data=impact_buffer,
+            file_name="impact_report.pdf",
+            mime="application/pdf",
+            key="impact_report"
+        )
+    except Exception as e:
+        st.error(f"Error generating impact report: {str(e)}")
+        st.download_button(
+            label="Download Impact Report",
+            data="This is a placeholder for the impact report PDF",
+            file_name="impact_report.pdf",
+            mime="application/pdf"
+        )
 
 with col3:
     st.download_button(
         label="Export Portfolio Data",
         data=json.dumps(portfolio, indent=2),
         file_name="portfolio_data.json",
-        mime="application/json"
+        mime="application/json",
+        key="portfolio_data"
     )
