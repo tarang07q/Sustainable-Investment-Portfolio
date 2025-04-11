@@ -16,18 +16,24 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get theme from session state
+# Set dark theme by default
 if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
+    st.session_state.theme = 'dark'
 
-# Apply theme-specific styles
-theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
-theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
-theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
-theme_card_bg = "#262730" if st.session_state.theme == "dark" else "white"
+# Apply dark theme styles
+theme_bg_color = "#0e1117"  # Dark background
+theme_text_color = "#ffffff"  # White text
+theme_secondary_bg = "#1e2530"  # Slightly lighter dark for secondary elements
+theme_card_bg = "#262730"  # Dark card background
 
-# Set Plotly theme based on app theme
-plotly_template = "plotly_dark" if st.session_state.theme == "dark" else "plotly_white"
+# No authentication check required for ESG Education page
+# This page is accessible without login
+
+# Import authentication utilities to check if user is logged in
+from utils.supabase import is_authenticated, get_current_user
+
+# Set Plotly theme to dark mode
+plotly_template = "plotly_dark"
 
 # Custom CSS with dynamic theming
 st.markdown(f"""
@@ -37,26 +43,36 @@ st.markdown(f"""
         background-color: {theme_bg_color};
         color: {theme_text_color};
     }}
+
+    .welcome-banner {{
+        background-color: rgba(76, 175, 80, 0.15);
+        border-left: 4px solid #4CAF50;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-radius: 4px;
+        color: #e0e0e0;
+    }}
     .stButton>button {{
         width: 100%;
     }}
     .education-card {{
-        background-color: {theme_secondary_bg};
+        background-color: #1e2530;
         padding: 1.5rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
-        color: {theme_text_color};
+        color: #e0e0e0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }}
     .sdg-card {{
-        background-color: {theme_card_bg};
+        background-color: #262730;
         padding: 1rem;
         border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         margin: 0.5rem 0;
         display: flex;
         flex-direction: column;
         height: 100%;
-        color: {theme_text_color};
+        color: #e0e0e0;
     }}
     .sdg-card img {{
         max-width: 80px;
@@ -68,6 +84,19 @@ st.markdown(f"""
 # Header
 st.title("📚 ESG Education Center")
 st.markdown("*Learn about sustainable investing principles and ESG criteria*")
+
+# Check if user is authenticated and show welcome banner for non-authenticated users
+if not is_authenticated():
+    st.markdown("""
+    <div class="welcome-banner">
+        <h3 style="margin-top: 0; color: #7bdb7f;">Welcome to the ESG Education Center</h3>
+        <p style="color: #e0e0e0;">This free resource is available to all visitors. Create an account to access our full suite of sustainable investing tools.</p>
+        <a href="/Authentication" style="text-decoration: none; color: #7bdb7f; font-weight: 500; display: inline-flex; align-items: center;">
+            <i class="fas fa-user-plus" style="margin-right: 8px;"></i> Sign up for free
+            <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9rem;"></i>
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Main navigation tabs
 tabs = st.tabs(["ESG Basics", "SDG Framework", "Impact Measurement", "Resources"])

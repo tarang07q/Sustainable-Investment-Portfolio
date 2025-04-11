@@ -24,6 +24,10 @@ st.set_page_config(
 theme_colors = apply_theme_css()
 plotly_template = theme_colors['plotly_template']
 
+# Add authentication check
+from utils.auth_redirect import check_authentication
+check_authentication()
+
 # Generate dummy stock data
 def generate_stock_data() -> pd.DataFrame:
     np.random.seed(42)

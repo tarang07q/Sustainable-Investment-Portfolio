@@ -3,13 +3,16 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta  # Not used
 import random
 import sys
 import os
 
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import sustainability data
+from utils.sustainability_data import SDG_DATA, SUSTAINABILITY_TRENDS, generate_sector_recommendations
 
 # Set page config
 st.set_page_config(
@@ -25,6 +28,10 @@ if 'theme' not in st.session_state:
 # Apply theme-specific styles
 theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
 theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
+
+# Add authentication check
+from utils.auth_redirect import check_authentication
+check_authentication()
 theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
 theme_card_bg = "#262730" if st.session_state.theme == "dark" else "white"
 
@@ -71,19 +78,27 @@ def generate_stock_data() -> pd.DataFrame:
             'GreenTech Solutions', 'EcoEnergy Corp', 'Sustainable Pharma',
             'CleanRetail Inc', 'Future Mobility', 'Smart Agriculture',
             'Renewable Power', 'Circular Economy', 'WaterTech',
-            'Sustainable Finance', 'Green Construction', 'EcoTransport'
+            'Sustainable Finance', 'Green Construction', 'EcoTransport',
+            'Ocean Conservation', 'Biodiversity Fund', 'Clean Air Technologies',
+            'Sustainable Materials', 'Ethical AI Systems', 'Carbon Capture Inc',
+            'Sustainable Forestry', 'Green Hydrogen', 'Waste Management Solutions'
         ],
         'Ticker': [
             'GRNT', 'ECOE', 'SUPH', 'CLRT', 'FUTM', 'SMAG',
-            'RNWP', 'CRCE', 'WTRT', 'SUFN', 'GRCN', 'ECTR'
+            'RNWP', 'CRCE', 'WTRT', 'SUFN', 'GRCN', 'ECTR',
+            'OCNC', 'BIOD', 'CAIR', 'SMAT', 'EAIS', 'CCAP',
+            'SFST', 'GRHD', 'WAMS'
         ],
         'Sector': [
             'Technology', 'Energy', 'Healthcare',
             'Retail', 'Transportation', 'Agriculture',
             'Energy', 'Manufacturing', 'Utilities',
-            'Finance', 'Construction', 'Transportation'
+            'Finance', 'Construction', 'Transportation',
+            'Marine Conservation', 'Biodiversity', 'Clean Air',
+            'Materials', 'Technology', 'Carbon Management',
+            'Forestry', 'Clean Energy', 'Waste Management'
         ],
-        'Asset_Type': ['Stock'] * 12
+        'Asset_Type': ['Stock'] * 21
     }
 
     df = pd.DataFrame(companies)
@@ -126,18 +141,23 @@ def generate_crypto_data() -> pd.DataFrame:
         'Name': [
             'GreenCoin', 'EcoToken', 'SustainChain',
             'CleanCrypto', 'FutureCoin', 'AgriToken',
-            'RenewCoin', 'CircularToken'
+            'RenewCoin', 'CircularToken', 'OceanToken',
+            'BiodiversityCoin', 'CarbonOffset', 'ForestCoin',
+            'EthicalAI Token', 'WaterCredit', 'SolarCoin'
         ],
         'Ticker': [
             'GRC', 'ECO', 'SUST', 'CLNC', 'FUTC', 'AGRT',
-            'RNWC', 'CIRC'
+            'RNWC', 'CIRC', 'OCNT', 'BIOC', 'CRBO', 'FRST',
+            'EAIT', 'WATR', 'SOLC'
         ],
         'Sector': [
             'Green Technology', 'Renewable Energy', 'Sustainable Supply Chain',
             'Carbon Credits', 'Future Tech', 'Sustainable Agriculture',
-            'Renewable Energy', 'Circular Economy'
+            'Renewable Energy', 'Circular Economy', 'Marine Conservation',
+            'Biodiversity', 'Carbon Management', 'Forestry',
+            'Ethical Technology', 'Water Management', 'Solar Energy'
         ],
-        'Asset_Type': ['Crypto'] * 8
+        'Asset_Type': ['Crypto'] * 15
     }
 
     df = pd.DataFrame(cryptos)
@@ -176,41 +196,9 @@ def generate_crypto_data() -> pd.DataFrame:
 
     return df
 
-# Generate market trends
+# Use sustainability trends from imported data
 def generate_market_trends():
-    trends = [
-        {
-            'title': 'Renewable Energy Growth',
-            'description': 'Renewable energy companies are showing strong growth potential due to increasing global commitments to carbon reduction.',
-            'impact': 'Positive for clean energy stocks and related cryptocurrencies',
-            'confidence': 85
-        },
-        {
-            'title': 'ESG Regulation Strengthening',
-            'description': 'New ESG disclosure requirements are being implemented across major markets, affecting corporate reporting and compliance.',
-            'impact': 'Positive for companies with strong ESG practices, negative for laggards',
-            'confidence': 92
-        },
-        {
-            'title': 'Green Technology Innovation',
-            'description': 'Breakthrough technologies in carbon capture and sustainable materials are creating new investment opportunities.',
-            'impact': 'Positive for green tech and sustainable material companies',
-            'confidence': 78
-        },
-        {
-            'title': 'Crypto Energy Consumption Concerns',
-            'description': 'Increasing scrutiny of cryptocurrency energy usage is driving a shift toward more energy-efficient protocols.',
-            'impact': 'Positive for eco-friendly cryptocurrencies, negative for energy-intensive ones',
-            'confidence': 88
-        },
-        {
-            'title': 'Sustainable Supply Chain Demand',
-            'description': 'Consumer and regulatory pressure is increasing demand for transparent and sustainable supply chains.',
-            'impact': 'Positive for companies with robust supply chain sustainability',
-            'confidence': 82
-        }
-    ]
-    return trends
+    return SUSTAINABILITY_TRENDS
 
 # Load data
 stocks_df = generate_stock_data()
@@ -327,10 +315,51 @@ if st.button("Generate Personalized Recommendations"):
     filtered_assets = filtered_assets.sort_values('Custom_Score', ascending=False)
 
     # Display top recommendations
-    top_recommendations = filtered_assets.head(3)
+    top_recommendations = filtered_assets.head(5)
 
     for i, (_, asset) in enumerate(top_recommendations.iterrows()):
         recommendation_type = "Strong Buy" if asset['AI_Recommendation'] == '🟢 Strong Buy' else "Consider" if asset['AI_Recommendation'] == '🟡 Hold' else "Research Further"
+
+        # Generate more detailed sector-specific recommendation using our utility function
+        sector_rec = generate_sector_recommendations(asset['Sector'], risk_tolerance, sustainability_focus)
+
+        # Create sector-specific insight based on the recommendation
+        sector_specific_insight = f"{asset['Name']} {sector_rec['rationale'].split(',', 1)[1].strip() if ',' in sector_rec['rationale'] else sector_rec['rationale']}"
+
+        # Add relevant ESG metrics for the sector
+        key_metrics = []
+        if sector_rec['key_esg_metrics']['environmental']:
+            key_metrics.append(f"key environmental focus: {sector_rec['key_esg_metrics']['environmental'][0]}")
+        if sector_rec['key_esg_metrics']['social']:
+            key_metrics.append(f"social consideration: {sector_rec['key_esg_metrics']['social'][0]}")
+
+        # Add climate risk information if available
+        climate_risk = f"Climate risk exposure: {sector_rec['climate_risk_exposure']}"
+
+        # Combine insights
+        sector_specific_insight = f"{sector_specific_insight} With {', '.join(key_metrics)}. {climate_risk}"
+
+        # Generate risk assessment based on volatility and ESG score
+        if asset['Volatility'] < 0.3 and asset['ESG_Score'] > 80:
+            risk_assessment = "Low risk profile with strong sustainability credentials"
+        elif asset['Volatility'] < 0.3 and asset['ESG_Score'] > 60:
+            risk_assessment = "Low market volatility with moderate sustainability performance"
+        elif asset['Volatility'] < 0.5 and asset['ESG_Score'] > 80:
+            risk_assessment = "Moderate market volatility balanced by strong sustainability practices"
+        elif asset['Volatility'] < 0.5 and asset['ESG_Score'] > 60:
+            risk_assessment = "Moderate risk profile across both market and sustainability dimensions"
+        elif asset['Volatility'] >= 0.5 and asset['ESG_Score'] > 80:
+            risk_assessment = "Higher market volatility offset by excellent sustainability performance"
+        else:
+            risk_assessment = "Higher risk profile requiring careful position sizing"
+
+        # Generate investment horizon recommendation
+        if investment_horizon == "Short-term (< 1 year)":
+            horizon_fit = "short-term" if asset['Volatility'] < 0.4 and asset['Price_Change_24h'] > 0 else "medium to long-term"
+        elif investment_horizon == "Medium-term (1-3 years)":
+            horizon_fit = "medium-term" if asset['ESG_Score'] > 70 or asset['ROI_1Y'] > 10 else "long-term"
+        else:  # Long-term
+            horizon_fit = "long-term" if asset['ESG_Score'] > 75 else "medium-term"
 
         st.markdown(f"""
         <div class="recommendation-card">
@@ -340,7 +369,10 @@ if st.button("Generate Personalized Recommendations"):
             <p><strong>ESG Score:</strong> {asset['ESG_Score']:.1f}/100 | <strong>1Y ROI:</strong> {asset['ROI_1Y']:.2f}% | <strong>Volatility:</strong> {asset['Volatility']:.2f}</p>
             <p><strong>Why we recommend this:</strong> {asset['Name']} aligns well with your {sustainability_focus.lower()} and {risk_tolerance.lower()} risk tolerance preferences.
             It has {('strong ESG credentials' if asset['ESG_Score'] > 75 else 'moderate ESG performance')} and {('excellent' if asset['ROI_1Y'] > 15 else 'solid' if asset['ROI_1Y'] > 8 else 'stable')} return potential.</p>
-            <p><strong>Suggested Allocation:</strong> {30 if i == 0 else 20 if i == 1 else 15}% of your portfolio (${investment_amount * (0.3 if i == 0 else 0.2 if i == 1 else 0.15):,.2f})</p>
+            <p><strong>Sector Insight:</strong> {sector_specific_insight}</p>
+            <p><strong>Risk Assessment:</strong> {risk_assessment}</p>
+            <p><strong>Investment Horizon:</strong> Best suited for {horizon_fit} investors</p>
+            <p><strong>Suggested Allocation:</strong> {25 if i == 0 else 20 if i == 1 else 15 if i == 2 else 10}% of your portfolio (${investment_amount * (0.25 if i == 0 else 0.2 if i == 1 else 0.15 if i == 2 else 0.1):,.2f})</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -439,12 +471,35 @@ if st.button("Generate Personalized Recommendations"):
     st.markdown("## Market Insights")
     st.markdown("Our AI analyzes market trends and ESG developments to provide you with actionable insights")
 
-    for trend in market_trends:
+    # Filter trends relevant to selected sectors if sectors are selected
+    relevant_trends = []
+    if preferred_sectors:
+        for trend in market_trends:
+            if 'All' in trend['related_sectors'] or any(sector in trend['related_sectors'] for sector in preferred_sectors):
+                relevant_trends.append(trend)
+    else:
+        relevant_trends = market_trends
+
+    for trend in relevant_trends:
+        # Determine relevance level based on confidence and sector match
+        relevance = "High" if trend['confidence'] > 85 else "Medium" if trend['confidence'] > 75 else "Moderate"
+        if preferred_sectors and any(sector in trend['related_sectors'] for sector in preferred_sectors):
+            relevance = "Very High" if relevance == "High" else "High" if relevance == "Medium" else "Medium"
+
+        # Generate actionable recommendation based on the trend
+        if "Positive" in trend['impact']:
+            action = "Consider increasing allocation to" if relevance in ["Very High", "High"] else "Monitor"
+        else:
+            action = "Consider reducing exposure to" if relevance in ["Very High", "High"] else "Review holdings in"
+
+        sectors_affected = ", ".join(trend['related_sectors']) if trend['related_sectors'] != ["All"] else "all sectors"
+
         st.markdown(f"""
         <div class="insight-card">
-            <h4>{trend['title']} <span style="float:right;font-size:0.8rem;color:#666;">Confidence: {trend['confidence']}%</span></h4>
+            <h4>{trend['title']} <span style="float:right;font-size:0.8rem;color:#666;">Confidence: {trend['confidence']}% | Relevance: {relevance}</span></h4>
             <p>{trend['description']}</p>
             <p><strong>Impact:</strong> {trend['impact']}</p>
+            <p><strong>Recommendation:</strong> {action} {sectors_affected}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -635,6 +690,52 @@ ESG investing considers Environmental, Social, and Governance factors alongside 
 
 Research shows that companies with strong ESG practices often demonstrate better long-term financial performance and resilience during market downturns.
 """)
+
+# SDG alignment explanation
+st.markdown("## UN Sustainable Development Goals (SDGs)")
+
+# Convert imported SDG_DATA to DataFrame format for display
+sdg_data = {
+    'SDG': [],
+    'Description': [],
+    'Related_Sectors': []
+}
+
+for sdg_num, data in SDG_DATA.items():
+    sdg_data['SDG'].append(f"SDG {sdg_num}: {data['name']}")
+    sdg_data['Description'].append(data['description'])
+    sdg_data['Related_Sectors'].append(', '.join(data['related_sectors']))
+
+sdg_df = pd.DataFrame(sdg_data)
+
+# Display SDGs in an expander
+with st.expander("View UN Sustainable Development Goals (SDGs)"):
+    # Create three columns for better display
+    col1, col2, col3 = st.columns(3)
+
+    # Distribute SDGs across columns
+    sdgs_per_column = len(sdg_df) // 3 + (1 if len(sdg_df) % 3 > 0 else 0)
+
+    with col1:
+        for i in range(0, sdgs_per_column):
+            st.markdown(f"**{sdg_df.iloc[i]['SDG']}**")
+            st.markdown(f"{sdg_df.iloc[i]['Description']}")
+            st.markdown(f"*Related sectors: {sdg_df.iloc[i]['Related_Sectors']}*")
+            st.markdown("---")
+
+    with col2:
+        for i in range(sdgs_per_column, min(2*sdgs_per_column, len(sdg_df))):
+            st.markdown(f"**{sdg_df.iloc[i]['SDG']}**")
+            st.markdown(f"{sdg_df.iloc[i]['Description']}")
+            st.markdown(f"*Related sectors: {sdg_df.iloc[i]['Related_Sectors']}*")
+            st.markdown("---")
+
+    with col3:
+        for i in range(2*sdgs_per_column, len(sdg_df)):
+            st.markdown(f"**{sdg_df.iloc[i]['SDG']}**")
+            st.markdown(f"{sdg_df.iloc[i]['Description']}")
+            st.markdown(f"*Related sectors: {sdg_df.iloc[i]['Related_Sectors']}*")
+            st.markdown("---")
 
 # FAQ section
 st.markdown("## Frequently Asked Questions")
