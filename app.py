@@ -50,6 +50,89 @@ st.markdown("""
         background-color: #1a1f2b;
     }
 
+    /* Dashboard styles */
+    .dashboard-container {
+        background-color: #1e2530;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        margin-bottom: 3rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(76, 175, 80, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+        z-index: 0;
+    }
+
+    .dashboard-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .dashboard-icon {
+        font-size: 2.5rem;
+        color: #4CAF50;
+        margin-right: 1.5rem;
+        background-color: rgba(76, 175, 80, 0.1);
+        width: 70px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric-card {
+        background-color: rgba(30, 37, 48, 0.7);
+        border-radius: 10px;
+        padding: 1.5rem;
+        height: 100%;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, var(--metric-color) 0%, transparent 100%);
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .metric-icon {
+        font-size: 1.8rem;
+        margin-right: 1rem;
+        background-color: rgba(var(--metric-bg), 0.15);
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+
     /* Enhanced feature cards */
     .feature-card {
         background-color: #1e2530;
@@ -62,11 +145,42 @@ st.markdown("""
         justify-content: space-between;
         border-left: 4px solid #4CAF50;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba(76, 175, 80, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+        z-index: 0;
     }
 
     .feature-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .feature-button {
+        background: linear-gradient(90deg, #4CAF50, #2196F3);
+        color: white;
+        padding: 0.8rem 1.2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        text-align: center;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .feature-button:hover {
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        transform: translateY(-2px);
     }
 
     /* Enhanced trend cards */
@@ -342,9 +456,11 @@ else:
 
     # Dashboard container
     st.markdown(f"""
-    <div style="margin-bottom: 3rem; background-color: #1e2530; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-            <i class="fas fa-chart-line" style="font-size: 2rem; color: #4CAF50; margin-right: 1rem;"></i>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="dashboard-icon">
+                <i class="fas fa-solar-panel"></i>
+            </div>
             <div>
                 <h2 style="margin: 0; font-size: 1.8rem; margin-bottom: 0.5rem;">Welcome to your dashboard, {user['full_name'].split()[0]}</h2>
                 <p style="font-size: 1.1rem; opacity: 0.8; margin: 0;">Your sustainable investment journey continues</p>
@@ -358,33 +474,45 @@ else:
 
     with col1:
         st.markdown("""
-        <div style="display: flex; align-items: center; background-color: rgba(76, 175, 80, 0.1); padding: 1rem; border-radius: 8px; height: 100%;">
-            <i class="fas fa-leaf" style="font-size: 1.5rem; color: #4CAF50; margin-right: 1rem;"></i>
-            <div>
-                <h4 style="margin: 0; font-size: 1rem;">ESG Impact</h4>
-                <p style="margin: 0; font-size: 1.2rem; font-weight: 600;">High</p>
+        <div class="metric-card" style="--metric-color: #4CAF50;">
+            <div style="display: flex; align-items: center;">
+                <div class="metric-icon" style="--metric-bg: 76, 175, 80; color: #4CAF50;">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-size: 1rem; color: #aaa;">ESG Impact</h4>
+                    <p style="margin: 0; font-size: 1.4rem; font-weight: 600; color: #fff;">High</p>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown("""
-        <div style="display: flex; align-items: center; background-color: rgba(33, 150, 243, 0.1); padding: 1rem; border-radius: 8px; height: 100%;">
-            <i class="fas fa-chart-pie" style="font-size: 1.5rem; color: #2196F3; margin-right: 1rem;"></i>
-            <div>
-                <h4 style="margin: 0; font-size: 1rem;">Portfolio Value</h4>
-                <p style="margin: 0; font-size: 1.2rem; font-weight: 600;">$24,680</p>
+        <div class="metric-card" style="--metric-color: #2196F3;">
+            <div style="display: flex; align-items: center;">
+                <div class="metric-icon" style="--metric-bg: 33, 150, 243; color: #2196F3;">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-size: 1rem; color: #aaa;">Portfolio Value</h4>
+                    <p style="margin: 0; font-size: 1.4rem; font-weight: 600; color: #fff;">$24,680</p>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col3:
         st.markdown("""
-        <div style="display: flex; align-items: center; background-color: rgba(255, 152, 0, 0.1); padding: 1rem; border-radius: 8px; height: 100%;">
-            <i class="fas fa-chart-line" style="font-size: 1.5rem; color: #FF9800; margin-right: 1rem;"></i>
-            <div>
-                <h4 style="margin: 0; font-size: 1rem;">Performance</h4>
-                <p style="margin: 0; font-size: 1.2rem; font-weight: 600;">+12.4%</p>
+        <div class="metric-card" style="--metric-color: #FF9800;">
+            <div style="display: flex; align-items: center;">
+                <div class="metric-icon" style="--metric-bg: 255, 152, 0; color: #FF9800;">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-size: 1rem; color: #aaa;">Performance</h4>
+                    <p style="margin: 0; font-size: 1.4rem; font-weight: 600; color: #fff;">+12.4%</p>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -417,7 +545,10 @@ with col1:
     st.markdown("""
     <div class="feature-card">
         <div>
-            <h3 style="margin-top: 0;"><span style="font-size: 1.5rem;">📊</span> Data-Driven Insights</h3>
+            <h3 style="margin-top: 0; display: flex; align-items: center;">
+                <i class="fas fa-chart-bar" style="color: #4CAF50; font-size: 1.5rem; margin-right: 10px;"></i>
+                Data-Driven Insights
+            </h3>
             <p style="margin-bottom: 1.5rem;">
                 Access comprehensive ESG ratings and financial metrics for stocks and cryptocurrencies.
                 Our AI analyzes multiple data sources to provide you with the most accurate information.
@@ -425,7 +556,10 @@ with col1:
         </div>
         <div>
             <a href="/Market_Explorer" target="_self" style="text-decoration: none; display: block;">
-                <div class="feature-button">Explore Analytics</div>
+                <div class="feature-button">
+                    Explore Analytics
+                    <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9rem;"></i>
+                </div>
             </a>
         </div>
     </div>
@@ -435,7 +569,10 @@ with col2:
     st.markdown("""
     <div class="feature-card">
         <div>
-            <h3 style="margin-top: 0;"><span style="font-size: 1.5rem;">💼</span> Portfolio Management</h3>
+            <h3 style="margin-top: 0; display: flex; align-items: center;">
+                <i class="fas fa-briefcase" style="color: #2196F3; font-size: 1.5rem; margin-right: 10px;"></i>
+                Portfolio Management
+            </h3>
             <p style="margin-bottom: 1.5rem;">
                 Create and manage custom portfolios that align with your financial goals and sustainability values.
                 Track performance, assess risks, and understand your impact.
@@ -443,7 +580,10 @@ with col2:
         </div>
         <div>
             <a href="/Portfolio_Manager" target="_self" style="text-decoration: none; display: block;">
-                <div class="feature-button">Manage Portfolios</div>
+                <div class="feature-button">
+                    Manage Portfolios
+                    <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9rem;"></i>
+                </div>
             </a>
         </div>
     </div>
@@ -453,7 +593,10 @@ with col3:
     st.markdown("""
     <div class="feature-card">
         <div>
-            <h3 style="margin-top: 0;"><span style="font-size: 1.5rem;">🤖</span> AI Recommendations</h3>
+            <h3 style="margin-top: 0; display: flex; align-items: center;">
+                <i class="fas fa-robot" style="color: #FF9800; font-size: 1.5rem; margin-right: 10px;"></i>
+                AI Recommendations
+            </h3>
             <p style="margin-bottom: 1.5rem;">
                 Receive personalized investment recommendations based on your risk profile, financial goals,
                 and sustainability preferences. Our AI continuously learns from market trends and ESG developments.
@@ -461,7 +604,10 @@ with col3:
         </div>
         <div>
             <a href="/AI_Recommendations" target="_self" style="text-decoration: none; display: block;">
-                <div class="feature-button">Get Recommendations</div>
+                <div class="feature-button">
+                    Get Recommendations
+                    <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9rem;"></i>
+                </div>
             </a>
         </div>
     </div>
