@@ -687,12 +687,13 @@ with col2:
     st.markdown("### SDG Alignment")
 
     aligned_sdgs = list(risk_metrics['sdg_details'].keys())
-    sdg_badges = " ".join([f"<span style='background-color:#f0f2f6;padding:5px 10px;border-radius:10px;margin-right:5px;'>SDG {sdg}</span>" for sdg in aligned_sdgs])
+    sdg_badges = " ".join([f"<span class='sdg-badge sdg-{sdg}'>SDG {sdg}</span>" for sdg in aligned_sdgs])
 
     # Create SDG contribution details
     sdg_details = ""
     for sdg, details in risk_metrics['sdg_details'].items():
-        sdg_details += f"<p><strong>SDG {sdg}:</strong> {details['name']} - {details['contribution']} contribution</p>"
+        contribution_color = "#4CAF50" if details['contribution'] == 'High' else "#FFC107" if details['contribution'] == 'Medium' else "#FF9800"
+        sdg_details += f"<p><strong class='sdg-{sdg}'>SDG {sdg}:</strong> {details['name']} - <span style='color:{contribution_color};font-weight:bold;'>{details['contribution']}</span> contribution</p>"
 
     st.markdown(f"""
     <div class="metric-card">
@@ -1002,11 +1003,26 @@ col1, col2, col3 = st.columns(3)
 
 # Generate PDF report content
 def generate_portfolio_report():
-    import io
-    from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib import colors
+    try:
+        import io
+        import reportlab
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+    except ImportError:
+        # Install reportlab if not available
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
+
+        # Now import after installation
+        import io
+        import reportlab
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -1089,11 +1105,26 @@ def generate_portfolio_report():
 
 # Generate impact report
 def generate_impact_report():
-    import io
-    from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib import colors
+    try:
+        import io
+        import reportlab
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+    except ImportError:
+        # Install reportlab if not available
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
+
+        # Now import after installation
+        import io
+        import reportlab
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -1117,11 +1148,13 @@ def generate_impact_report():
 
     # SDG Contributions
     content.append(Paragraph("SDG Contributions", styles["Heading2"]))
-    sdg_data = [["SDG", "Contribution Level"]]
-    for sdg, level in zip([1, 7, 12, 13], ["High", "Medium", "High", "Medium"]):
-        sdg_data.append([f"SDG {sdg}", level])
+    sdg_data = [["SDG", "Name", "Contribution Level"]]
 
-    sdg_table = Table(sdg_data, colWidths=[200, 200])
+    # Use actual SDG data from the portfolio's risk metrics
+    for sdg_num, details in risk_metrics['sdg_details'].items():
+        sdg_data.append([f"SDG {sdg_num}", details['name'], details['contribution']])
+
+    sdg_table = Table(sdg_data, colWidths=[80, 220, 100])
     sdg_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.green),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),

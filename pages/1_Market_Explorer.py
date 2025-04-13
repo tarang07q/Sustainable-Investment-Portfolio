@@ -382,7 +382,7 @@ if 'asset_data' in locals():
         # SDG alignment
         st.markdown("**SDG Alignment:**")
         sdg_list = asset_data['SDG_Alignment']
-        sdg_badges = " ".join([f"<span style='background-color:#f0f2f6;padding:3px 8px;border-radius:10px;margin-right:5px;'>SDG {sdg}</span>" for sdg in sdg_list])
+        sdg_badges = " ".join([f"<span class='sdg-badge sdg-{sdg}'>SDG {sdg}</span>" for sdg in sdg_list])
         st.markdown(sdg_badges, unsafe_allow_html=True)
 
         # Carbon footprint

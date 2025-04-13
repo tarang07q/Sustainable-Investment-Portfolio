@@ -114,10 +114,33 @@ def generate_stock_data() -> pd.DataFrame:
     df['Governance_Score'] = np.random.uniform(60, 95, len(df))
     df['ESG_Score'] = (df['Environmental_Score'] + df['Social_Score'] + df['Governance_Score']) / 3
 
-    # SDG Alignment
-    df['SDG_Alignment'] = [
-        random.sample(range(1, 18), k=random.randint(2, 5)) for _ in range(len(df))
-    ]
+    # SDG Alignment - make it sector-specific
+    # Import SDG data if not already imported
+    from utils.sustainability_data import SDG_DATA
+
+    # Create a list to hold SDG alignments
+    sdg_alignments = []
+
+    # Create sector-specific SDG alignments
+    for _, row in df.iterrows():
+        sector = row['Sector']
+        # Find SDGs related to this sector
+        sector_sdgs = []
+        for sdg_num, sdg_data in SDG_DATA.items():
+            if sector in sdg_data['related_sectors'] or 'All' in sdg_data['related_sectors']:
+                sector_sdgs.append(sdg_num)
+
+        # If we found sector-specific SDGs, use them (with some randomness)
+        if sector_sdgs:
+            # Take 2-4 SDGs that are relevant to the sector
+            num_sdgs = min(len(sector_sdgs), random.randint(2, 4))
+            sdg_alignments.append(random.sample(sector_sdgs, k=num_sdgs))
+        else:
+            # Fallback to random SDGs if no sector match
+            sdg_alignments.append(random.sample(range(1, 18), k=random.randint(2, 3)))
+
+    # Assign the list to the DataFrame column
+    df['SDG_Alignment'] = sdg_alignments
 
     # Carbon Footprint
     df['Carbon_Footprint'] = np.random.uniform(10, 100, len(df))
@@ -173,10 +196,43 @@ def generate_crypto_data() -> pd.DataFrame:
     df['Governance_Score'] = np.random.uniform(40, 80, len(df))  # Decentralization affects governance
     df['ESG_Score'] = (df['Environmental_Score'] + df['Social_Score'] + df['Governance_Score']) / 3
 
-    # SDG Alignment
-    df['SDG_Alignment'] = [
-        random.sample(range(1, 18), k=random.randint(1, 4)) for _ in range(len(df))
-    ]
+    # SDG Alignment - make it relevant to crypto projects
+    # Define crypto-relevant SDGs
+    crypto_relevant_sdgs = {
+        'GreenCoin': [7, 13],  # Clean energy, Climate action
+        'EcoToken': [12, 13, 15],  # Responsible consumption, Climate action, Life on land
+        'SustainChain': [9, 12, 17],  # Industry/innovation, Responsible consumption, Partnerships
+        'CleanCrypto': [7, 13],  # Clean energy, Climate action
+        'FutureCoin': [9, 11],  # Industry/innovation, Sustainable cities
+        'AgriToken': [2, 12, 15],  # Zero hunger, Responsible consumption, Life on land
+        'RenewCoin': [7, 13],  # Clean energy, Climate action
+        'CircularToken': [12],  # Responsible consumption
+        'OceanToken': [14],  # Life below water
+        'BiodiversityCoin': [14, 15],  # Life below water, Life on land
+        'CarbonOffset': [13],  # Climate action
+        'ForestCoin': [13, 15],  # Climate action, Life on land
+        'EthicalAI Token': [9, 10],  # Industry/innovation, Reduced inequalities
+        'WaterCredit': [6, 14],  # Clean water, Life below water
+        'SolarCoin': [7, 13]  # Clean energy, Climate action
+    }
+
+    # Create a list to hold SDG alignments
+    sdg_alignments = []
+
+    # Assign SDGs based on crypto name
+    for _, row in df.iterrows():
+        name = row['Name']
+        if name in crypto_relevant_sdgs:
+            # Add some randomness - don't always include all SDGs
+            sdgs = crypto_relevant_sdgs[name]
+            num_sdgs = min(len(sdgs), random.randint(1, len(sdgs)))
+            sdg_alignments.append(random.sample(sdgs, k=num_sdgs))
+        else:
+            # Fallback
+            sdg_alignments.append(random.sample([7, 9, 12, 13], k=random.randint(1, 2)))
+
+    # Assign the list to the DataFrame column
+    df['SDG_Alignment'] = sdg_alignments
 
     # Energy Consumption (specific to crypto)
     df['Energy_Consumption'] = np.random.uniform(10, 1000, len(df))
@@ -361,14 +417,33 @@ if st.button("Generate Personalized Recommendations"):
         else:  # Long-term
             horizon_fit = "long-term" if asset['ESG_Score'] > 75 else "medium-term"
 
+        # Get SDG badges for this asset
+        sdg_badges = ""
+        for sdg in asset['SDG_Alignment']:
+            sdg_badges += f"<span class='sdg-badge sdg-{sdg}'>SDG {sdg}</span> "
+
+        # Get SDG names for description
+        sdg_names = []
+        for sdg in asset['SDG_Alignment']:
+            if sdg in SDG_DATA:
+                sdg_names.append(SDG_DATA[sdg]['name'])
+
+        # Create SDG description
+        if sdg_names:
+            sdg_description = f"Contributes to {', '.join(sdg_names)}"
+        else:
+            sdg_description = "Limited SDG alignment"
+
         st.markdown(f"""
         <div class="recommendation-card">
             <h3>#{i+1}: {recommendation_type} - {asset['Name']} ({asset['Ticker']})</h3>
             <p><strong>Asset Type:</strong> {asset['Asset_Type']} | <strong>Sector:</strong> {asset['Sector']}</p>
             <p><strong>Current Price:</strong> ${asset['Current_Price']:.2f} | <strong>24h Change:</strong> {asset['Price_Change_24h']:.2f}%</p>
             <p><strong>ESG Score:</strong> {asset['ESG_Score']:.1f}/100 | <strong>1Y ROI:</strong> {asset['ROI_1Y']:.2f}% | <strong>Volatility:</strong> {asset['Volatility']:.2f}</p>
+            <p><strong>SDG Alignment:</strong> {sdg_badges}</p>
             <p><strong>Why we recommend this:</strong> {asset['Name']} aligns well with your {sustainability_focus.lower()} and {risk_tolerance.lower()} risk tolerance preferences.
             It has {('strong ESG credentials' if asset['ESG_Score'] > 75 else 'moderate ESG performance')} and {('excellent' if asset['ROI_1Y'] > 15 else 'solid' if asset['ROI_1Y'] > 8 else 'stable')} return potential.</p>
+            <p><strong>Sustainability Impact:</strong> {sdg_description}</p>
             <p><strong>Sector Insight:</strong> {sector_specific_insight}</p>
             <p><strong>Risk Assessment:</strong> {risk_assessment}</p>
             <p><strong>Investment Horizon:</strong> Best suited for {horizon_fit} investors</p>
@@ -494,11 +569,31 @@ if st.button("Generate Personalized Recommendations"):
 
         sectors_affected = ", ".join(trend['related_sectors']) if trend['related_sectors'] != ["All"] else "all sectors"
 
+        # Get SDG badges if available
+        sdg_badges = ""
+        if 'related_sdgs' in trend:
+            for sdg in trend['related_sdgs']:
+                sdg_badges += f"<span class='sdg-badge sdg-{sdg}'>SDG {sdg}</span> "
+
+        # Get SDG names for description
+        sdg_names = []
+        if 'related_sdgs' in trend:
+            for sdg in trend['related_sdgs']:
+                if sdg in SDG_DATA:
+                    sdg_names.append(SDG_DATA[sdg]['name'])
+
+        # Create SDG description
+        sdg_description = ""
+        if sdg_names:
+            sdg_description = f"<p><strong>SDG Alignment:</strong> {', '.join(sdg_names)}</p>"
+
         st.markdown(f"""
         <div class="insight-card">
             <h4>{trend['title']} <span style="float:right;font-size:0.8rem;color:#666;">Confidence: {trend['confidence']}% | Relevance: {relevance}</span></h4>
             <p>{trend['description']}</p>
             <p><strong>Impact:</strong> {trend['impact']}</p>
+            <p><strong>SDGs:</strong> {sdg_badges}</p>
+            {sdg_description}
             <p><strong>Recommendation:</strong> {action} {sectors_affected}</p>
         </div>
         """, unsafe_allow_html=True)

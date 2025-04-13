@@ -343,6 +343,25 @@ def apply_theme_css():
             color: {colors['text_color']};
         }}
 
+        /* SDG colors */
+        .sdg-1 {{ background-color: rgba(229, 36, 59, 0.2); color: #E5243B; border: 1px solid #E5243B; }}
+        .sdg-2 {{ background-color: rgba(221, 166, 58, 0.2); color: #DDA63A; border: 1px solid #DDA63A; }}
+        .sdg-3 {{ background-color: rgba(76, 159, 56, 0.2); color: #4C9F38; border: 1px solid #4C9F38; }}
+        .sdg-4 {{ background-color: rgba(197, 25, 45, 0.2); color: #C5192D; border: 1px solid #C5192D; }}
+        .sdg-5 {{ background-color: rgba(255, 58, 33, 0.2); color: #FF3A21; border: 1px solid #FF3A21; }}
+        .sdg-6 {{ background-color: rgba(38, 189, 226, 0.2); color: #26BDE2; border: 1px solid #26BDE2; }}
+        .sdg-7 {{ background-color: rgba(252, 195, 11, 0.2); color: #FCC30B; border: 1px solid #FCC30B; }}
+        .sdg-8 {{ background-color: rgba(162, 25, 66, 0.2); color: #A21942; border: 1px solid #A21942; }}
+        .sdg-9 {{ background-color: rgba(253, 105, 37, 0.2); color: #FD6925; border: 1px solid #FD6925; }}
+        .sdg-10 {{ background-color: rgba(221, 19, 103, 0.2); color: #DD1367; border: 1px solid #DD1367; }}
+        .sdg-11 {{ background-color: rgba(253, 157, 36, 0.2); color: #FD9D24; border: 1px solid #FD9D24; }}
+        .sdg-12 {{ background-color: rgba(191, 139, 46, 0.2); color: #BF8B2E; border: 1px solid #BF8B2E; }}
+        .sdg-13 {{ background-color: rgba(63, 126, 68, 0.2); color: #3F7E44; border: 1px solid #3F7E44; }}
+        .sdg-14 {{ background-color: rgba(10, 151, 217, 0.2); color: #0A97D9; border: 1px solid #0A97D9; }}
+        .sdg-15 {{ background-color: rgba(86, 192, 43, 0.2); color: #56C02B; border: 1px solid #56C02B; }}
+        .sdg-16 {{ background-color: rgba(0, 104, 157, 0.2); color: #00689D; border: 1px solid #00689D; }}
+        .sdg-17 {{ background-color: rgba(25, 72, 106, 0.2); color: #19486A; border: 1px solid #19486A; }}
+
         /* Sidebar styling */
         .css-1d391kg, [data-testid="stSidebar"] {{
             background-color: {colors['card_bg']} !important;

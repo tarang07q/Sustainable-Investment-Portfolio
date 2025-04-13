@@ -436,8 +436,9 @@ with tabs[1]:
     for i, sdg in enumerate(sdgs):
         with cols[i % 4]:
             st.markdown(f"""
-            <div class="sdg-card" style="border-top: 5px solid {sdg['color']}">
-                <h4>SDG {sdg['number']}: {sdg['name']}</h4>
+            <div class="sdg-card">
+                <span class="sdg-badge sdg-{sdg['number']}">SDG {sdg['number']}</span>
+                <h4>{sdg['name']}</h4>
                 <p>{sdg['description']}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -462,26 +463,47 @@ with tabs[1]:
     # Sample data on investment opportunities by SDG
     sdg_opportunities = {
         'SDG': [
-            'SDG 7: Affordable and Clean Energy',
-            'SDG 6: Clean Water and Sanitation',
-            'SDG 9: Industry, Innovation and Infrastructure',
-            'SDG 3: Good Health and Well-being',
-            'SDG 11: Sustainable Cities and Communities',
-            'SDG 2: Zero Hunger',
-            'SDG 13: Climate Action'
+            'SDG 7',
+            'SDG 6',
+            'SDG 9',
+            'SDG 3',
+            'SDG 11',
+            'SDG 2',
+            'SDG 13'
         ],
-        'Market_Size_B': [2800, 1000, 3500, 2200, 1800, 1200, 2500]
+        'SDG_Name': [
+            'Affordable and Clean Energy',
+            'Clean Water and Sanitation',
+            'Industry, Innovation and Infrastructure',
+            'Good Health and Well-being',
+            'Sustainable Cities and Communities',
+            'Zero Hunger',
+            'Climate Action'
+        ],
+        'Market_Size_B': [2800, 1000, 3500, 2200, 1800, 1200, 2500],
+        'SDG_Number': [7, 6, 9, 3, 11, 2, 13]
     }
 
     sdg_opp_df = pd.DataFrame(sdg_opportunities)
+
+    # Display SDG badges above the chart
+    sdg_badges = ""
+    for _, row in sdg_opp_df.iterrows():
+        sdg_badges += f"<span class='sdg-badge sdg-{row['SDG_Number']}'>{row['SDG']}</span> "
+
+    st.markdown(f"<div style='margin-bottom: 20px;'>{sdg_badges}</div>", unsafe_allow_html=True)
+
+    # Create custom hover text with SDG names
+    sdg_opp_df['hover_text'] = sdg_opp_df.apply(lambda row: f"{row['SDG']}: {row['SDG_Name']}<br>Market Size: ${row['Market_Size_B']} Billion", axis=1)
 
     fig = px.bar(
         sdg_opp_df,
         x='SDG',
         y='Market_Size_B',
         title='Estimated Market Size of SDG Investment Opportunities (Billions USD)',
-        color='Market_Size_B',
-        color_continuous_scale='Viridis',
+        color='SDG_Number',
+        color_discrete_sequence=px.colors.qualitative.G10,
+        hover_data={'hover_text': True, 'SDG_Number': False, 'Market_Size_B': False, 'SDG': False},
         template=plotly_template
     )
 
