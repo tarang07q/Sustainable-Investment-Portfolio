@@ -436,7 +436,7 @@ with tabs[1]:
     for i, sdg in enumerate(sdgs):
         with cols[i % 4]:
             st.markdown(f"""
-            <div class="sdg-card">
+            <div class="sdg-card" style="min-height: 200px;">
                 <span class="sdg-badge sdg-{sdg['number']}">SDG {sdg['number']}</span>
                 <h4>{sdg['name']}</h4>
                 <p>{sdg['description']}</p>

@@ -317,6 +317,7 @@ else:
 
 # Only display asset details if we have valid data
 if 'asset_data' in locals():
+    st.markdown("<div style='background-color: rgba(17, 25, 40, 0.7); padding: 20px; border-radius: 12px; margin-top: 20px; border-left: 5px solid #4CAF50;'>", unsafe_allow_html=True)
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -399,3 +400,6 @@ if 'asset_data' in locals():
 
         # Set price alert button
         st.button("Set Price Alert", key=f"alert_{asset_data['Ticker']}")
+
+    # Close the container div
+    st.markdown("</div>", unsafe_allow_html=True)

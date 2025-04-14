@@ -435,7 +435,7 @@ if st.button("Generate Personalized Recommendations"):
             sdg_description = "Limited SDG alignment"
 
         st.markdown(f"""
-        <div class="recommendation-card">
+        <div class="recommendation-card" style="min-height: 450px;">
             <h3>#{i+1}: {recommendation_type} - {asset['Name']} ({asset['Ticker']})</h3>
             <p><strong>Asset Type:</strong> {asset['Asset_Type']} | <strong>Sector:</strong> {asset['Sector']}</p>
             <p><strong>Current Price:</strong> ${asset['Current_Price']:.2f} | <strong>24h Change:</strong> {asset['Price_Change_24h']:.2f}%</p>
@@ -588,7 +588,7 @@ if st.button("Generate Personalized Recommendations"):
             sdg_description = f"<p><strong>SDG Alignment:</strong> {', '.join(sdg_names)}</p>"
 
         st.markdown(f"""
-        <div class="insight-card">
+        <div class="insight-card" style="min-height: 250px;">
             <h4>{trend['title']} <span style="float:right;font-size:0.8rem;color:#666;">Confidence: {trend['confidence']}% | Relevance: {relevance}</span></h4>
             <p>{trend['description']}</p>
             <p><strong>Impact:</strong> {trend['impact']}</p>

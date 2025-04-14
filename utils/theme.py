@@ -111,7 +111,7 @@ def apply_theme_css():
         }}
 
         /* Card styles with better alignment and consistency */
-        .recommendation-card, .metric-card, .asset-card, .portfolio-card {{
+        .recommendation-card, .metric-card, .asset-card, .portfolio-card, .insight-card, .sdg-card {{
             background-color: {colors['secondary_bg']};
             padding: 1.5rem;
             border-radius: 12px;
@@ -123,8 +123,9 @@ def apply_theme_css():
             display: flex;
             flex-direction: column;
             border-left: 5px solid {colors['accent_color']};
+            width: 100%;
         }}
-        .recommendation-card:hover, .metric-card:hover, .asset-card:hover, .portfolio-card:hover {{
+        .recommendation-card:hover, .metric-card:hover, .asset-card:hover, .portfolio-card:hover, .insight-card:hover, .sdg-card:hover {{
             transform: translateY(-5px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }}

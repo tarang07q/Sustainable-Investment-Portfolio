@@ -999,6 +999,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Download reports
 st.markdown("### Download Reports")
+st.markdown("<div style='background-color: rgba(17, 25, 40, 0.7); padding: 20px; border-radius: 12px; margin-top: 20px; border-left: 5px solid #4CAF50;'>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
 # Generate PDF report content
@@ -1217,3 +1218,6 @@ with col3:
         mime="application/json",
         key="portfolio_data"
     )
+
+# Close the container div
+st.markdown("</div>", unsafe_allow_html=True)
