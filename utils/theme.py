@@ -19,6 +19,11 @@ def get_theme_colors():
         'secondary_bg': "#1e2530" if theme == "dark" else "#f0f2f6",
         'card_bg': "#262730" if theme == "dark" else "#f8f9fa",
         'accent_color': "#4CAF50",
+        'secondary_accent': "#2196F3",
+        'tertiary_accent': "#9C27B0",
+        'success_color': "#00C853",
+        'warning_color': "#FFD600",
+        'error_color': "#FF5252",
         'plotly_template': "plotly_dark" if theme == "dark" else "plotly_white"
     }
 
@@ -71,7 +76,7 @@ def get_theme_toggle_button():
         """, unsafe_allow_html=True)
 
         # Create a small empty column to place the button in the corner
-        col1, col2 = st.columns([0.97, 0.03])
+        _, col2 = st.columns([0.97, 0.03])
         with col2:
             # Hidden button to capture the click event (with empty label)
             if st.button(" ", key="theme_toggle_btn", help="Toggle between light and dark theme"):
@@ -106,21 +111,47 @@ def apply_theme_css():
         }}
 
         /* Card styles with better alignment and consistency */
-        .recommendation-card, .metric-card, .asset-card, .portfolio-card {{
+        .recommendation-card, .metric-card, .asset-card, .portfolio-card, .insight-card, .sdg-card {{
             background-color: {colors['secondary_bg']};
-            padding: 1.2rem;
-            border-radius: 8px;
-            margin: 0.8rem 0;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
             color: {colors['text_color']};
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: all 0.3s ease;
-            height: calc(100% - 1.6rem); /* Consistent height accounting for margins */
+            height: calc(100% - 2rem); /* Consistent height accounting for margins */
             display: flex;
             flex-direction: column;
+            border-left: 5px solid {colors['accent_color']};
+            width: 100%;
         }}
-        .recommendation-card:hover, .metric-card:hover, .asset-card:hover, .portfolio-card:hover {{
+        .recommendation-card:hover, .metric-card:hover, .asset-card:hover, .portfolio-card:hover, .insight-card:hover, .sdg-card:hover {{
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }}
+
+        /* Different border colors for different card types */
+        .recommendation-card {{
+            border-left: 5px solid {colors['accent_color']};
+        }}
+        .metric-card {{
+            border-left: 5px solid {colors['secondary_accent']};
+        }}
+        .asset-card {{
+            border-left: 5px solid {colors['tertiary_accent']};
+        }}
+        .portfolio-card {{
+            border-left: 5px solid {colors['success_color']};
+        }}
+
+        /* Card header styling */
+        .recommendation-card h3, .metric-card h3, .asset-card h3, .portfolio-card h3,
+        .recommendation-card h4, .metric-card h4, .asset-card h4, .portfolio-card h4 {{
+            margin-top: 0;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
         }}
 
         /* Fix background colors for various Streamlit elements */
@@ -247,20 +278,90 @@ def apply_theme_css():
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 1rem;
+            padding: 1.2rem;
+            background-color: {colors['secondary_bg']};
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            height: 100%;
+        }}
+        .metric-container:hover {{
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
         }}
         .metric-value {{
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 700;
-            color: {colors['accent_color']};
+            background: linear-gradient(135deg, {colors['accent_color']}, {colors['secondary_accent']});
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin: 0.5rem 0;
         }}
         .metric-label {{
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 500;
             color: {colors['text_color']};
-            opacity: 0.8;
+            opacity: 0.9;
         }}
+
+        /* Badge styling */
+        .badge {{
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }}
+        .badge-success {{
+            background-color: rgba(0, 200, 83, 0.15);
+            color: {colors['success_color']};
+            border: 1px solid rgba(0, 200, 83, 0.3);
+        }}
+        .badge-warning {{
+            background-color: rgba(255, 214, 0, 0.15);
+            color: {colors['warning_color']};
+            border: 1px solid rgba(255, 214, 0, 0.3);
+        }}
+        .badge-error {{
+            background-color: rgba(255, 82, 82, 0.15);
+            color: {colors['error_color']};
+            border: 1px solid rgba(255, 82, 82, 0.3);
+        }}
+
+        /* SDG badge styling */
+        .sdg-badge {{
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: {colors['secondary_bg']};
+            border: 1px solid {colors['accent_color']};
+            color: {colors['text_color']};
+        }}
+
+        /* SDG colors */
+        .sdg-1 {{ background-color: rgba(229, 36, 59, 0.2); color: #E5243B; border: 1px solid #E5243B; }}
+        .sdg-2 {{ background-color: rgba(221, 166, 58, 0.2); color: #DDA63A; border: 1px solid #DDA63A; }}
+        .sdg-3 {{ background-color: rgba(76, 159, 56, 0.2); color: #4C9F38; border: 1px solid #4C9F38; }}
+        .sdg-4 {{ background-color: rgba(197, 25, 45, 0.2); color: #C5192D; border: 1px solid #C5192D; }}
+        .sdg-5 {{ background-color: rgba(255, 58, 33, 0.2); color: #FF3A21; border: 1px solid #FF3A21; }}
+        .sdg-6 {{ background-color: rgba(38, 189, 226, 0.2); color: #26BDE2; border: 1px solid #26BDE2; }}
+        .sdg-7 {{ background-color: rgba(252, 195, 11, 0.2); color: #FCC30B; border: 1px solid #FCC30B; }}
+        .sdg-8 {{ background-color: rgba(162, 25, 66, 0.2); color: #A21942; border: 1px solid #A21942; }}
+        .sdg-9 {{ background-color: rgba(253, 105, 37, 0.2); color: #FD6925; border: 1px solid #FD6925; }}
+        .sdg-10 {{ background-color: rgba(221, 19, 103, 0.2); color: #DD1367; border: 1px solid #DD1367; }}
+        .sdg-11 {{ background-color: rgba(253, 157, 36, 0.2); color: #FD9D24; border: 1px solid #FD9D24; }}
+        .sdg-12 {{ background-color: rgba(191, 139, 46, 0.2); color: #BF8B2E; border: 1px solid #BF8B2E; }}
+        .sdg-13 {{ background-color: rgba(63, 126, 68, 0.2); color: #3F7E44; border: 1px solid #3F7E44; }}
+        .sdg-14 {{ background-color: rgba(10, 151, 217, 0.2); color: #0A97D9; border: 1px solid #0A97D9; }}
+        .sdg-15 {{ background-color: rgba(86, 192, 43, 0.2); color: #56C02B; border: 1px solid #56C02B; }}
+        .sdg-16 {{ background-color: rgba(0, 104, 157, 0.2); color: #00689D; border: 1px solid #00689D; }}
+        .sdg-17 {{ background-color: rgba(25, 72, 106, 0.2); color: #19486A; border: 1px solid #19486A; }}
 
         /* Sidebar styling */
         .css-1d391kg, [data-testid="stSidebar"] {{

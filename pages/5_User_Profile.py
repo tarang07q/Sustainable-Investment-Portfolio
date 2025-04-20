@@ -26,6 +26,10 @@ theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6
 theme_card_bg = "#262730" if st.session_state.theme == "dark" else "#f8f9fa"
 theme_border_color = "#555" if st.session_state.theme == "dark" else "#ddd"
 
+# Add authentication check
+from utils.auth_redirect import check_authentication
+check_authentication()
+
 # Custom CSS with dynamic theming
 st.markdown(f"""
     <style>

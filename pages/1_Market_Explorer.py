@@ -24,6 +24,10 @@ st.set_page_config(
 theme_colors = apply_theme_css()
 plotly_template = theme_colors['plotly_template']
 
+# Add authentication check
+from utils.auth_redirect import check_authentication
+check_authentication()
+
 # Generate dummy stock data
 def generate_stock_data() -> pd.DataFrame:
     np.random.seed(42)
@@ -313,6 +317,7 @@ else:
 
 # Only display asset details if we have valid data
 if 'asset_data' in locals():
+    st.markdown("<div style='background-color: rgba(17, 25, 40, 0.7); padding: 20px; border-radius: 12px; margin-top: 20px; border-left: 5px solid #4CAF50;'>", unsafe_allow_html=True)
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -378,7 +383,7 @@ if 'asset_data' in locals():
         # SDG alignment
         st.markdown("**SDG Alignment:**")
         sdg_list = asset_data['SDG_Alignment']
-        sdg_badges = " ".join([f"<span style='background-color:#f0f2f6;padding:3px 8px;border-radius:10px;margin-right:5px;'>SDG {sdg}</span>" for sdg in sdg_list])
+        sdg_badges = " ".join([f"<span class='sdg-badge sdg-{sdg}'>SDG {sdg}</span>" for sdg in sdg_list])
         st.markdown(sdg_badges, unsafe_allow_html=True)
 
         # Carbon footprint
@@ -395,3 +400,6 @@ if 'asset_data' in locals():
 
         # Set price alert button
         st.button("Set Price Alert", key=f"alert_{asset_data['Ticker']}")
+
+    # Close the container div
+    st.markdown("</div>", unsafe_allow_html=True)

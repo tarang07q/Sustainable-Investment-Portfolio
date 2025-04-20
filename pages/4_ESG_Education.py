@@ -16,18 +16,24 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get theme from session state
+# Set dark theme by default
 if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
+    st.session_state.theme = 'dark'
 
-# Apply theme-specific styles
-theme_bg_color = "#0e1117" if st.session_state.theme == "dark" else "#ffffff"
-theme_text_color = "#ffffff" if st.session_state.theme == "dark" else "#0e1117"
-theme_secondary_bg = "#1e2530" if st.session_state.theme == "dark" else "#f0f2f6"
-theme_card_bg = "#262730" if st.session_state.theme == "dark" else "white"
+# Apply dark theme styles
+theme_bg_color = "#0e1117"  # Dark background
+theme_text_color = "#ffffff"  # White text
+theme_secondary_bg = "#1e2530"  # Slightly lighter dark for secondary elements
+theme_card_bg = "#262730"  # Dark card background
 
-# Set Plotly theme based on app theme
-plotly_template = "plotly_dark" if st.session_state.theme == "dark" else "plotly_white"
+# No authentication check required for ESG Education page
+# This page is accessible without login
+
+# Import authentication utilities to check if user is logged in
+from utils.supabase import is_authenticated, get_current_user
+
+# Set Plotly theme to dark mode
+plotly_template = "plotly_dark"
 
 # Custom CSS with dynamic theming
 st.markdown(f"""
@@ -37,26 +43,36 @@ st.markdown(f"""
         background-color: {theme_bg_color};
         color: {theme_text_color};
     }}
+
+    .welcome-banner {{
+        background-color: rgba(76, 175, 80, 0.15);
+        border-left: 4px solid #4CAF50;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-radius: 4px;
+        color: #e0e0e0;
+    }}
     .stButton>button {{
         width: 100%;
     }}
     .education-card {{
-        background-color: {theme_secondary_bg};
+        background-color: #1e2530;
         padding: 1.5rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
-        color: {theme_text_color};
+        color: #e0e0e0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }}
     .sdg-card {{
-        background-color: {theme_card_bg};
+        background-color: #262730;
         padding: 1rem;
         border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         margin: 0.5rem 0;
         display: flex;
         flex-direction: column;
         height: 100%;
-        color: {theme_text_color};
+        color: #e0e0e0;
     }}
     .sdg-card img {{
         max-width: 80px;
@@ -68,6 +84,19 @@ st.markdown(f"""
 # Header
 st.title("📚 ESG Education Center")
 st.markdown("*Learn about sustainable investing principles and ESG criteria*")
+
+# Check if user is authenticated and show welcome banner for non-authenticated users
+if not is_authenticated():
+    st.markdown("""
+    <div class="welcome-banner">
+        <h3 style="margin-top: 0; color: #7bdb7f;">Welcome to the ESG Education Center</h3>
+        <p style="color: #e0e0e0;">This free resource is available to all visitors. Create an account to access our full suite of sustainable investing tools.</p>
+        <a href="/Authentication" style="text-decoration: none; color: #7bdb7f; font-weight: 500; display: inline-flex; align-items: center;">
+            <i class="fas fa-user-plus" style="margin-right: 8px;"></i> Sign up for free
+            <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9rem;"></i>
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Main navigation tabs
 tabs = st.tabs(["ESG Basics", "SDG Framework", "Impact Measurement", "Resources"])
@@ -407,8 +436,9 @@ with tabs[1]:
     for i, sdg in enumerate(sdgs):
         with cols[i % 4]:
             st.markdown(f"""
-            <div class="sdg-card" style="border-top: 5px solid {sdg['color']}">
-                <h4>SDG {sdg['number']}: {sdg['name']}</h4>
+            <div class="sdg-card" style="min-height: 200px;">
+                <span class="sdg-badge sdg-{sdg['number']}">SDG {sdg['number']}</span>
+                <h4>{sdg['name']}</h4>
                 <p>{sdg['description']}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -433,26 +463,47 @@ with tabs[1]:
     # Sample data on investment opportunities by SDG
     sdg_opportunities = {
         'SDG': [
-            'SDG 7: Affordable and Clean Energy',
-            'SDG 6: Clean Water and Sanitation',
-            'SDG 9: Industry, Innovation and Infrastructure',
-            'SDG 3: Good Health and Well-being',
-            'SDG 11: Sustainable Cities and Communities',
-            'SDG 2: Zero Hunger',
-            'SDG 13: Climate Action'
+            'SDG 7',
+            'SDG 6',
+            'SDG 9',
+            'SDG 3',
+            'SDG 11',
+            'SDG 2',
+            'SDG 13'
         ],
-        'Market_Size_B': [2800, 1000, 3500, 2200, 1800, 1200, 2500]
+        'SDG_Name': [
+            'Affordable and Clean Energy',
+            'Clean Water and Sanitation',
+            'Industry, Innovation and Infrastructure',
+            'Good Health and Well-being',
+            'Sustainable Cities and Communities',
+            'Zero Hunger',
+            'Climate Action'
+        ],
+        'Market_Size_B': [2800, 1000, 3500, 2200, 1800, 1200, 2500],
+        'SDG_Number': [7, 6, 9, 3, 11, 2, 13]
     }
 
     sdg_opp_df = pd.DataFrame(sdg_opportunities)
+
+    # Display SDG badges above the chart
+    sdg_badges = ""
+    for _, row in sdg_opp_df.iterrows():
+        sdg_badges += f"<span class='sdg-badge sdg-{row['SDG_Number']}'>{row['SDG']}</span> "
+
+    st.markdown(f"<div style='margin-bottom: 20px;'>{sdg_badges}</div>", unsafe_allow_html=True)
+
+    # Create custom hover text with SDG names
+    sdg_opp_df['hover_text'] = sdg_opp_df.apply(lambda row: f"{row['SDG']}: {row['SDG_Name']}<br>Market Size: ${row['Market_Size_B']} Billion", axis=1)
 
     fig = px.bar(
         sdg_opp_df,
         x='SDG',
         y='Market_Size_B',
         title='Estimated Market Size of SDG Investment Opportunities (Billions USD)',
-        color='Market_Size_B',
-        color_continuous_scale='Viridis',
+        color='SDG_Number',
+        color_discrete_sequence=px.colors.qualitative.G10,
+        hover_data={'hover_text': True, 'SDG_Number': False, 'Market_Size_B': False, 'SDG': False},
         template=plotly_template
     )
 
