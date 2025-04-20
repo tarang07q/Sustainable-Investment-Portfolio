@@ -14,6 +14,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.theme import apply_theme_css
 from utils.sustainability_data import generate_sector_recommendations, generate_portfolio_impact_metrics
 
+# Import ML models integration
+from models.ml_integration import get_ml_portfolio_recommendations, get_ml_risk_assessment, get_ml_market_sentiment, display_ml_recommendations, display_ml_risk_assessment, display_ml_sentiment_analysis
+
 # Set page config
 st.set_page_config(
     page_title="Portfolio Manager - Sustainable Investment Portfolio",
@@ -421,46 +424,55 @@ st.dataframe(
 
 # Risk assessment
 st.markdown("## Risk Assessment")
+st.markdown("<p style='margin-bottom:15px;'>Comprehensive analysis of your portfolio's risk profile using our advanced ML models.</p>", unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+# Get ML risk assessment
+ml_risk_assessment = get_ml_risk_assessment(assets_df)
 
-with col1:
-    # Financial risk metrics
-    st.markdown("### Financial Risk Metrics")
+# Display ML risk assessment
+display_ml_risk_assessment(ml_risk_assessment, theme_colors)
 
-    financial_metrics = {
-        'Volatility (Annualized)': f"{risk_metrics['portfolio_volatility']}%",
-        'Sharpe Ratio': f"{risk_metrics['sharpe_ratio']}",
-        'Maximum Drawdown': f"{risk_metrics['max_drawdown']}%",
-        'Value at Risk (95%)': f"{risk_metrics['var_95']}%"
-    }
+# Traditional risk metrics in expandable section
+with st.expander("View Traditional Risk Metrics"):
+    col1, col2 = st.columns(2)
 
-    for metric, value in financial_metrics.items():
-        st.markdown(f"""
-        <div class="metric-card">
-            <h4>{metric}</h4>
-            <p style="font-size: 1.5rem; font-weight: bold;">{value}</p>
-        </div>
-        """, unsafe_allow_html=True)
+    with col1:
+        # Financial risk metrics
+        st.markdown("### Financial Risk Metrics")
 
-with col2:
-    # Sustainability risk metrics
-    st.markdown("### Sustainability Risk Metrics")
+        financial_metrics = {
+            'Volatility (Annualized)': f"{risk_metrics['portfolio_volatility']}%",
+            'Sharpe Ratio': f"{risk_metrics['sharpe_ratio']}",
+            'Maximum Drawdown': f"{risk_metrics['max_drawdown']}%",
+            'Value at Risk (95%)': f"{risk_metrics['var_95']}%"
+        }
 
-    sustainability_metrics = {
-        'ESG Risk Score': f"{risk_metrics['esg_risk_score']} (Low Risk)",
-        'Carbon Intensity': f"{risk_metrics['carbon_intensity']} tCO2e/$M",
-        'SDG Alignment': f"{risk_metrics['sdg_alignment']} SDGs",
-        'Controversy Exposure': risk_metrics['controversy_exposure']
-    }
+        for metric, value in financial_metrics.items():
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>{metric}</h4>
+                <p style="font-size: 1.5rem; font-weight: bold;">{value}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-    for metric, value in sustainability_metrics.items():
-        st.markdown(f"""
-        <div class="metric-card">
-            <h4>{metric}</h4>
-            <p style="font-size: 1.5rem; font-weight: bold;">{value}</p>
-        </div>
-        """, unsafe_allow_html=True)
+    with col2:
+        # Sustainability risk metrics
+        st.markdown("### Sustainability Risk Metrics")
+
+        sustainability_metrics = {
+            'ESG Risk Score': f"{risk_metrics['esg_risk_score']} (Low Risk)",
+            'Carbon Intensity': f"{risk_metrics['carbon_intensity']} tCO2e/$M",
+            'SDG Alignment': f"{risk_metrics['sdg_alignment']} SDGs",
+            'Controversy Exposure': risk_metrics['controversy_exposure']
+        }
+
+        for metric, value in sustainability_metrics.items():
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>{metric}</h4>
+                <p style="font-size: 1.5rem; font-weight: bold;">{value}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
 # Portfolio optimization
 st.markdown("## Portfolio Optimization")
@@ -490,12 +502,35 @@ with col2:
     )
 
 # Optimization recommendations
-st.markdown("### Optimization Recommendations")
+st.markdown("### AI-Powered Investment Recommendations")
 
 # Generate recommendations based on sliders
-if st.button("Generate Recommendations"):
-    st.markdown("#### Recommended Portfolio Adjustments")
-    st.markdown("<p style='margin-bottom:15px;'>Based on your risk and sustainability preferences, we recommend the following adjustments:</p>", unsafe_allow_html=True)
+if st.button("Generate ML Recommendations"):
+    # User preferences
+    user_preferences = {
+        'risk_tolerance': risk_tolerance,
+        'sustainability_focus': sustainability_focus
+    }
+
+    # Get all assets (simulated)
+    from utils.financial_data import get_all_assets
+    all_assets = get_all_assets()
+    all_assets_df = pd.DataFrame(all_assets)
+
+    # Get ML recommendations
+    ml_recommendations = get_ml_portfolio_recommendations(assets_df, all_assets_df, user_preferences)
+
+    # Display ML recommendations
+    display_ml_recommendations(ml_recommendations, theme_colors)
+
+    # Get sentiment analysis for top recommendation
+    if not ml_recommendations.empty:
+        top_ticker = ml_recommendations.iloc[0]['ticker']
+        sentiment_analysis = get_ml_market_sentiment(top_ticker)
+
+        # Display sentiment analysis
+        st.markdown("### Market Sentiment Analysis for Top Recommendation")
+        display_ml_sentiment_analysis(sentiment_analysis, theme_colors)
 
     # Get unique sectors in the portfolio
     portfolio_sectors = set(asset['sector'] for asset in portfolio['assets'])
