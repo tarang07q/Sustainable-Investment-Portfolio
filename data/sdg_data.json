@@ -1,0 +1,146 @@
+{
+  "1": {
+    "name": "No Poverty",
+    "description": "End poverty in all its forms everywhere",
+    "related_sectors": [
+      "Finance",
+      "Agriculture",
+      "All"
+    ]
+  },
+  "2": {
+    "name": "Zero Hunger",
+    "description": "End hunger, achieve food security and improved nutrition",
+    "related_sectors": [
+      "Agriculture",
+      "Food",
+      "Sustainable Agriculture"
+    ]
+  },
+  "3": {
+    "name": "Good Health and Well-being",
+    "description": "Ensure healthy lives and promote well-being for all",
+    "related_sectors": [
+      "Healthcare",
+      "Pharmaceuticals"
+    ]
+  },
+  "4": {
+    "name": "Quality Education",
+    "description": "Ensure inclusive and equitable quality education",
+    "related_sectors": [
+      "Education",
+      "Technology"
+    ]
+  },
+  "5": {
+    "name": "Gender Equality",
+    "description": "Achieve gender equality and empower all women and girls",
+    "related_sectors": [
+      "All"
+    ]
+  },
+  "6": {
+    "name": "Clean Water and Sanitation",
+    "description": "Ensure availability and sustainable management of water",
+    "related_sectors": [
+      "Utilities",
+      "Water Management"
+    ]
+  },
+  "7": {
+    "name": "Affordable and Clean Energy",
+    "description": "Ensure access to affordable, reliable, sustainable energy",
+    "related_sectors": [
+      "Energy",
+      "Renewable Energy",
+      "Clean Energy"
+    ]
+  },
+  "8": {
+    "name": "Decent Work and Economic Growth",
+    "description": "Promote sustained, inclusive economic growth",
+    "related_sectors": [
+      "Finance",
+      "Technology",
+      "All"
+    ]
+  },
+  "9": {
+    "name": "Industry, Innovation and Infrastructure",
+    "description": "Build resilient infrastructure, promote inclusive industrialization",
+    "related_sectors": [
+      "Manufacturing",
+      "Technology",
+      "Construction"
+    ]
+  },
+  "10": {
+    "name": "Reduced Inequality",
+    "description": "Reduce inequality within and among countries",
+    "related_sectors": [
+      "Finance",
+      "Education",
+      "All"
+    ]
+  },
+  "11": {
+    "name": "Sustainable Cities and Communities",
+    "description": "Make cities inclusive, safe, resilient and sustainable",
+    "related_sectors": [
+      "Construction",
+      "Transportation",
+      "Utilities"
+    ]
+  },
+  "12": {
+    "name": "Responsible Consumption and Production",
+    "description": "Ensure sustainable consumption and production patterns",
+    "related_sectors": [
+      "Retail",
+      "Manufacturing",
+      "All"
+    ]
+  },
+  "13": {
+    "name": "Climate Action",
+    "description": "Take urgent action to combat climate change and its impacts",
+    "related_sectors": [
+      "Energy",
+      "Transportation",
+      "All"
+    ]
+  },
+  "14": {
+    "name": "Life Below Water",
+    "description": "Conserve and sustainably use the oceans, seas and marine resources",
+    "related_sectors": [
+      "Marine Conservation",
+      "Biodiversity"
+    ]
+  },
+  "15": {
+    "name": "Life on Land",
+    "description": "Protect, restore and promote sustainable use of terrestrial ecosystems",
+    "related_sectors": [
+      "Forestry",
+      "Agriculture",
+      "Biodiversity"
+    ]
+  },
+  "16": {
+    "name": "Peace, Justice and Strong Institutions",
+    "description": "Promote peaceful and inclusive societies for sustainable development",
+    "related_sectors": [
+      "Finance",
+      "All"
+    ]
+  },
+  "17": {
+    "name": "Partnerships for the Goals",
+    "description": "Strengthen the means of implementation and revitalize partnerships",
+    "related_sectors": [
+      "All"
+    ]
+  }
+}

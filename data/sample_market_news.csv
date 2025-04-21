@@ -1,0 +1,26 @@
+ticker,headline,publication_date,source,sentiment
+GRNT,GreenTech Solutions reports strong quarterly earnings exceeding analyst expectations,2023-04-01,Financial Times,positive
+GRNT,GreenTech Solutions announces new sustainable initiative to reduce carbon footprint,2023-04-05,Bloomberg,positive
+GRNT,GreenTech Solutions faces regulatory scrutiny over environmental practices,2023-04-10,Reuters,negative
+GRNT,Analysts maintain 'Hold' rating for GreenTech Solutions stock,2023-04-15,CNBC,neutral
+GRNT,GreenTech Solutions partners with tech giant for next-generation solutions,2023-04-20,Wall Street Journal,positive
+RNWP,Renewable Power expands into new markets with innovative products,2023-04-02,Bloomberg,positive
+RNWP,Renewable Power reports earnings in line with expectations,2023-04-07,Reuters,neutral
+RNWP,Analysts upgrade Renewable Power stock to 'Buy' citing growth potential,2023-04-12,CNBC,positive
+RNWP,Renewable Power maintains current sustainability initiatives,2023-04-17,MarketWatch,neutral
+RNWP,Renewable Power increases dividend by 10% signaling financial strength,2023-04-22,Financial Times,positive
+SUFN,Sustainable Finance misses earnings expectations shares drop,2023-04-03,Wall Street Journal,negative
+SUFN,Sustainable Finance announces leadership transition plan,2023-04-08,Financial Times,neutral
+SUFN,Sustainable Finance completes previously announced acquisition,2023-04-13,Bloomberg,neutral
+SUFN,ESG rating agency upgrades Sustainable Finance's sustainability score,2023-04-18,Reuters,positive
+SUFN,Sustainable Finance launches new green investment products,2023-04-23,CNBC,positive
+ECO,EcoToken faces regulatory scrutiny over energy consumption,2023-04-04,Reuters,negative
+ECO,EcoToken announces shift to 100% renewable energy for mining operations,2023-04-09,CNBC,positive
+ECO,Analysts downgrade EcoToken citing competitive pressures,2023-04-14,Bloomberg,negative
+ECO,EcoToken partners with environmental NGO for conservation project,2023-04-19,Financial Times,positive
+ECO,EcoToken trading volume surges amid increased institutional interest,2023-04-24,Wall Street Journal,positive
+GRC,GreenCoin reports lower than expected adoption rates,2023-04-05,MarketWatch,negative
+GRC,GreenCoin announces new sustainability features in upcoming update,2023-04-10,CNBC,positive
+GRC,GreenCoin maintains position as leading green cryptocurrency,2023-04-15,Bloomberg,positive
+GRC,GreenCoin faces criticism over actual environmental impact,2023-04-20,Reuters,negative
+GRC,GreenCoin forms alliance with major retailers for wider acceptance,2023-04-25,Financial Times,positive

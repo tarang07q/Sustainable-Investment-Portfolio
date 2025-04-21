@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from typing import List, Dict
+import yfinance as yf
 
 # Set page config
 st.set_page_config(
@@ -153,4 +154,48 @@ with col2:
     
     st.metric("Average ESG Score", f"{total_esg:.1f}")
     st.metric("Expected ROI", f"{total_roi:.1f}%")
-    st.metric("SDG 8 Impact", f"Contributing to {sdg_impact} SDGs") 
+    st.metric("SDG 8 Impact", f"Contributing to {sdg_impact} SDGs")
+
+# Step 3: Load and preprocess data
+def load_portfolio_data():
+    """Load and preprocess portfolio data"""
+    # Download stock data using yfinance
+    tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'JPM', 'V', 'WMT']
+    data = {}
+    
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            data[ticker] = stock.history(period="1y")
+        except:
+            print(f"Could not download data for {ticker}")
+    
+    # Create portfolio DataFrame
+    portfolio_df = pd.DataFrame()
+    
+    for ticker, df in data.items():
+        if not df.empty:
+            # Calculate metrics
+            returns = df['Close'].pct_change()
+            volatility = returns.std() * np.sqrt(252)  # Annualized volatility
+            roi = (df['Close'][-1] / df['Close'][0] - 1) * 100
+            
+            # Add to portfolio
+            portfolio_df = portfolio_df.append({
+                'ticker': ticker,
+                'name': stock.info.get('longName', ticker),
+                'sector': stock.info.get('sector', 'Unknown'),
+                'current_price': df['Close'][-1],
+                'volatility': volatility,
+                'roi_1y': roi,
+                'market_cap_b': stock.info.get('marketCap', 0) / 1e9,
+                'beta': stock.info.get('beta', 1.0),
+                'sharpe_ratio': roi / (volatility * 100) if volatility != 0 else 0
+            }, ignore_index=True)
+    
+    return portfolio_df
+
+# Load the data
+portfolio_df = load_portfolio_data()
+print("Portfolio Data Shape:", portfolio_df.shape)
+portfolio_df.head() 

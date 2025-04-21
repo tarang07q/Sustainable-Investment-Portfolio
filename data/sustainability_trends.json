@@ -1,0 +1,79 @@
+[
+  {
+    "title": "Renewable Energy Growth Accelerates",
+    "description": "Investment in renewable energy sources is growing at an unprecedented rate, with solar and wind capacity additions outpacing fossil fuels.",
+    "impact": "Positive for clean energy companies, negative for traditional fossil fuel producers",
+    "confidence": 92,
+    "related_sectors": [
+      "Energy",
+      "Renewable Energy",
+      "Clean Energy"
+    ],
+    "related_sdgs": [
+      7,
+      13
+    ]
+  },
+  {
+    "title": "ESG Reporting Standards Consolidation",
+    "description": "Global ESG reporting frameworks are consolidating, with the International Sustainability Standards Board (ISSB) emerging as the leading standard.",
+    "impact": "Positive for companies with strong ESG practices, challenging for laggards",
+    "confidence": 85,
+    "related_sectors": [
+      "All"
+    ],
+    "related_sdgs": [
+      12,
+      17
+    ]
+  },
+  {
+    "title": "Circular Economy Business Models Gain Traction",
+    "description": "Companies adopting circular economy principles are seeing improved resource efficiency and new revenue streams from waste reduction.",
+    "impact": "Positive for manufacturing and retail companies with circular initiatives",
+    "confidence": 78,
+    "related_sectors": [
+      "Manufacturing",
+      "Retail",
+      "Circular Economy"
+    ],
+    "related_sdgs": [
+      9,
+      12
+    ]
+  },
+  {
+    "title": "Biodiversity Loss Recognized as Financial Risk",
+    "description": "Financial institutions are beginning to assess biodiversity loss as a material financial risk, similar to climate change.",
+    "impact": "Negative for companies with high biodiversity impacts, positive for conservation solutions",
+    "confidence": 80,
+    "related_sectors": [
+      "Finance",
+      "Agriculture",
+      "Forestry",
+      "Marine Conservation",
+      "Biodiversity"
+    ],
+    "related_sdgs": [
+      14,
+      15
+    ]
+  },
+  {
+    "title": "Green Hydrogen Economy Emerges",
+    "description": "Green hydrogen production costs are falling rapidly, opening up new applications in industry, transportation, and energy storage.",
+    "impact": "Positive for clean energy, industrial decarbonization, and fuel cell technologies",
+    "confidence": 88,
+    "related_sectors": [
+      "Energy",
+      "Clean Energy",
+      "Transportation",
+      "Manufacturing"
+    ],
+    "related_sdgs": [
+      7,
+      9,
+      13
+    ]
+  }
+]

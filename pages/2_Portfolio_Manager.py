@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.theme import apply_theme_css
 from utils.sustainability_data import generate_sector_recommendations, generate_portfolio_impact_metrics
+from utils.data_loader import load_portfolio_data, load_market_news
 
 # Import ML models integration
 from models.ml_integration import get_ml_portfolio_recommendations, get_ml_risk_assessment, get_ml_market_sentiment, display_ml_recommendations, display_ml_risk_assessment, display_ml_sentiment_analysis
@@ -257,13 +258,32 @@ def generate_risk_metrics():
     }
     return risk_metrics
 
-# Load data
-portfolio = generate_portfolio_data()
+# Load data from file if available, otherwise generate it
+portfolio_df = load_portfolio_data()
+if portfolio_df is not None:
+    # Use the loaded data
+    assets_df = portfolio_df
+
+    # Create portfolio structure similar to generated data
+    portfolio = {
+        'name': 'My Sustainable Portfolio',
+        'created_date': '2023-01-15',
+        'last_updated': '2023-04-09',
+        'total_value': assets_df['current_value'].sum() if 'current_value' in assets_df.columns else 10000,
+        'assets': assets_df.to_dict('records')
+    }
+
+    # Print success message
+    print("Successfully loaded portfolio data from file!")
+else:
+    # Use generated data as fallback
+    portfolio = generate_portfolio_data()
+    assets_df = pd.DataFrame(portfolio['assets'])
+    print("Using generated portfolio data.")
+
+# Generate portfolio history and risk metrics
 portfolio_history = generate_portfolio_history()
 risk_metrics = generate_risk_metrics()
-
-# Convert portfolio assets to DataFrame for easier manipulation
-assets_df = pd.DataFrame(portfolio['assets'])
 
 # Header
 st.title("💼 Portfolio Manager")
@@ -426,10 +446,10 @@ st.dataframe(
 st.markdown("## Risk Assessment")
 st.markdown("<p style='margin-bottom:15px;'>Comprehensive analysis of your portfolio's risk profile using our advanced ML models.</p>", unsafe_allow_html=True)
 
-# Get ML risk assessment
+# Get ML risk assessment using the dataset
 ml_risk_assessment = get_ml_risk_assessment(assets_df)
 
-# Display ML risk assessment
+# Display ML risk assessment with visualization
 display_ml_risk_assessment(ml_risk_assessment, theme_colors)
 
 # Traditional risk metrics in expandable section

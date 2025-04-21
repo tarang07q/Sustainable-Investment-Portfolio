@@ -11,8 +11,12 @@ import os
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import sustainability data
+# Import sustainability data and data loader
 from utils.sustainability_data import SDG_DATA, SUSTAINABILITY_TRENDS, generate_sector_recommendations
+from utils.data_loader import load_portfolio_data, load_market_news
+
+# Import ML models
+from models.ml_integration import get_ml_portfolio_recommendations, get_ml_risk_assessment, get_ml_market_sentiment
 
 # Set page config
 st.set_page_config(
@@ -256,11 +260,36 @@ def generate_crypto_data() -> pd.DataFrame:
 def generate_market_trends():
     return SUSTAINABILITY_TRENDS
 
-# Load data
-stocks_df = generate_stock_data()
-crypto_df = generate_crypto_data()
-all_assets_df = pd.concat([stocks_df, crypto_df]).reset_index(drop=True)
+# Load data from file if available, otherwise generate it
+portfolio_df = load_portfolio_data()
+if portfolio_df is not None:
+    # Use the loaded data
+    print("Successfully loaded portfolio data from file!")
+
+    # Split into stocks and crypto
+    stocks_df = portfolio_df[portfolio_df['asset_type'] == 'Stock'] if 'asset_type' in portfolio_df.columns else generate_stock_data()
+    crypto_df = portfolio_df[portfolio_df['asset_type'] == 'Crypto'] if 'asset_type' in portfolio_df.columns else generate_crypto_data()
+
+    # If we don't have enough data, supplement with generated data
+    if len(stocks_df) < 5:
+        stocks_df = pd.concat([stocks_df, generate_stock_data()]).drop_duplicates(subset=['ticker']).reset_index(drop=True)
+    if len(crypto_df) < 5:
+        crypto_df = pd.concat([crypto_df, generate_crypto_data()]).drop_duplicates(subset=['ticker']).reset_index(drop=True)
+
+    # Combine all assets
+    all_assets_df = pd.concat([stocks_df, crypto_df]).reset_index(drop=True)
+else:
+    # Use generated data as fallback
+    print("Using generated portfolio data.")
+    stocks_df = generate_stock_data()
+    crypto_df = generate_crypto_data()
+    all_assets_df = pd.concat([stocks_df, crypto_df]).reset_index(drop=True)
+
+# Load market trends
 market_trends = generate_market_trends()
+
+# Load market news if available
+market_news_df = load_market_news()
 
 # Header
 st.title("🤖 AI Recommendations")
@@ -280,18 +309,61 @@ with col1:
     )
 
 with col2:
-    risk_tolerance = st.select_slider(
+    # Change to numeric slider for more granular control (1-10 scale)
+    risk_tolerance_numeric = st.slider(
         "Risk Tolerance",
-        options=["Very Low", "Low", "Moderate", "High", "Very High"],
-        value="Moderate"
+        min_value=1,
+        max_value=10,
+        value=5,
+        help="1 = Very Low, 10 = Very High"
     )
 
+    # Map numeric value to text for backward compatibility
+    risk_tolerance_map = {
+        1: "Very Low",
+        2: "Very Low",
+        3: "Low",
+        4: "Low",
+        5: "Moderate",
+        6: "Moderate",
+        7: "High",
+        8: "High",
+        9: "Very High",
+        10: "Very High"
+    }
+    risk_tolerance = risk_tolerance_map[risk_tolerance_numeric]
+
 with col3:
-    sustainability_focus = st.select_slider(
+    # Change to numeric slider for more granular control (1-10 scale)
+    sustainability_focus_numeric = st.slider(
         "Sustainability Focus",
-        options=["Financial Returns First", "Balanced Approach", "Impact First"],
-        value="Balanced Approach"
+        min_value=1,
+        max_value=10,
+        value=5,
+        help="1 = Financial Returns First, 10 = Impact First"
     )
+
+    # Map numeric value to text for backward compatibility
+    sustainability_focus_map = {
+        1: "Financial Returns First",
+        2: "Financial Returns First",
+        3: "Financial Returns First",
+        4: "Balanced Approach",
+        5: "Balanced Approach",
+        6: "Balanced Approach",
+        7: "Balanced Approach",
+        8: "Impact First",
+        9: "Impact First",
+        10: "Impact First"
+    }
+    sustainability_focus = sustainability_focus_map[sustainability_focus_numeric]
+
+# Create user preferences dictionary for ML models
+user_preferences = {
+    'risk_tolerance': risk_tolerance_numeric,  # 1-10 scale
+    'sustainability_focus': sustainability_focus_numeric,  # 1-10 scale
+    'investment_horizon': investment_horizon
+}
 
 # Investment amount
 investment_amount = st.number_input(
@@ -336,36 +408,88 @@ if st.button("Generate Personalized Recommendations"):
     if preferred_sectors:
         filtered_assets = filtered_assets[filtered_assets['Sector'].isin(preferred_sectors)]
 
-    # Adjust scoring based on user preferences
-    if risk_tolerance == "Very Low":
-        risk_weight = 0.6
-        return_weight = 0.2
-    elif risk_tolerance == "Low":
-        risk_weight = 0.5
-        return_weight = 0.3
-    elif risk_tolerance == "Moderate":
-        risk_weight = 0.4
-        return_weight = 0.4
-    elif risk_tolerance == "High":
-        risk_weight = 0.3
-        return_weight = 0.5
-    else:  # Very High
-        risk_weight = 0.2
-        return_weight = 0.6
+    # Use ML model for portfolio recommendations
+    try:
+        # Convert column names to lowercase for consistency with ML model
+        ml_assets = filtered_assets.copy()
+        ml_assets.columns = [col.lower() for col in ml_assets.columns]
 
-    if sustainability_focus == "Financial Returns First":
-        esg_weight = 0.2
-    elif sustainability_focus == "Balanced Approach":
-        esg_weight = 0.4
-    else:  # Impact First
-        esg_weight = 0.6
+        # Rename columns to match ML model expectations
+        column_mapping = {
+            'asset_type': 'asset_type',
+            'ticker': 'ticker',
+            'name': 'name',
+            'sector': 'sector',
+            'current_price': 'current_price',
+            'roi_1y': 'roi_1y',
+            'volatility': 'volatility',
+            'esg_score': 'esg_score',
+            'environmental_score': 'environmental_score',
+            'social_score': 'social_score',
+            'governance_score': 'governance_score',
+            'carbon_footprint': 'carbon_footprint'
+        }
 
-    # Calculate custom score
-    filtered_assets['Custom_Score'] = (
-        filtered_assets['ESG_Score'] * esg_weight +
-        (100 - filtered_assets['Volatility'] * 100) * risk_weight +
-        filtered_assets['ROI_1Y'] * return_weight
-    )
+        for old_col, new_col in column_mapping.items():
+            if old_col.lower() in ml_assets.columns and old_col.lower() != new_col:
+                ml_assets.rename(columns={old_col.lower(): new_col}, inplace=True)
+
+        # Get ML recommendations
+        recommendations = get_ml_portfolio_recommendations(ml_assets, user_preferences)
+
+        # Convert back to original column names and merge with filtered_assets
+        recommendations.columns = [col.upper() if col.lower() in [c.lower() for c in filtered_assets.columns] else col for col in recommendations.columns]
+
+        # Merge ML scores back to filtered_assets
+        filtered_assets['ML_Score'] = 0
+        for idx, row in recommendations.iterrows():
+            ticker_idx = filtered_assets[filtered_assets['Ticker'] == row['ticker']].index
+            if len(ticker_idx) > 0:
+                filtered_assets.loc[ticker_idx, 'ML_Score'] = row['final_score'] if 'final_score' in row else row['ml_score']
+
+        # Calculate custom score using both ML and rule-based approaches
+        # Convert risk_tolerance and sustainability_focus to weights
+        risk_weight = (11 - user_preferences['risk_tolerance']) / 10  # 1.0 to 0.1
+        esg_weight = user_preferences['sustainability_focus'] / 10  # 0.1 to 1.0
+        return_weight = 1 - risk_weight - esg_weight/2  # Balance the weights
+
+        # Calculate rule-based score
+        filtered_assets['Rule_Score'] = (
+            filtered_assets['ESG_Score'] * esg_weight +
+            (100 - filtered_assets['Volatility'] * 100) * risk_weight +
+            filtered_assets['ROI_1Y'] * return_weight
+        )
+
+        # Combine ML and rule-based scores (60% ML, 40% rule-based)
+        filtered_assets['Custom_Score'] = filtered_assets['ML_Score'] * 0.6 + filtered_assets['Rule_Score'] * 0.4
+
+        # Add recommendation strength
+        filtered_assets['Recommendation_Strength'] = pd.cut(
+            filtered_assets['Custom_Score'],
+            bins=[0, 40, 60, 100],
+            labels=['Consider with Caution', 'Moderate Opportunity', 'Strong Recommendation']
+        )
+    except Exception as e:
+        st.warning(f"ML model not available, using rule-based recommendations instead. Error: {str(e)}")
+        # Fallback to rule-based scoring if ML model fails
+        # Convert risk_tolerance and sustainability_focus to weights
+        risk_weight = (11 - user_preferences['risk_tolerance']) / 10  # 1.0 to 0.1
+        esg_weight = user_preferences['sustainability_focus'] / 10  # 0.1 to 1.0
+        return_weight = 1 - risk_weight - esg_weight/2  # Balance the weights
+
+        # Calculate rule-based score
+        filtered_assets['Custom_Score'] = (
+            filtered_assets['ESG_Score'] * esg_weight +
+            (100 - filtered_assets['Volatility'] * 100) * risk_weight +
+            filtered_assets['ROI_1Y'] * return_weight
+        )
+
+        # Add recommendation strength
+        filtered_assets['Recommendation_Strength'] = pd.cut(
+            filtered_assets['Custom_Score'],
+            bins=[0, 40, 60, 100],
+            labels=['Consider with Caution', 'Moderate Opportunity', 'Strong Recommendation']
+        )
 
     # Sort by custom score
     filtered_assets = filtered_assets.sort_values('Custom_Score', ascending=False)
@@ -374,7 +498,11 @@ if st.button("Generate Personalized Recommendations"):
     top_recommendations = filtered_assets.head(5)
 
     for i, (_, asset) in enumerate(top_recommendations.iterrows()):
-        recommendation_type = "Strong Buy" if asset['AI_Recommendation'] == '🟢 Strong Buy' else "Consider" if asset['AI_Recommendation'] == '🟡 Hold' else "Research Further"
+        # Use ML-based recommendation strength if available
+        if 'Recommendation_Strength' in asset and not pd.isna(asset['Recommendation_Strength']):
+            recommendation_type = str(asset['Recommendation_Strength'])
+        else:
+            recommendation_type = "Strong Buy" if asset['AI_Recommendation'] == '🟢 Strong Buy' else "Consider" if asset['AI_Recommendation'] == '🟡 Hold' else "Research Further"
 
         # Generate more detailed sector-specific recommendation using our utility function
         sector_rec = generate_sector_recommendations(asset['Sector'], risk_tolerance, sustainability_focus)
@@ -510,26 +638,55 @@ if st.button("Generate Personalized Recommendations"):
     # Expected performance
     st.markdown("### Expected Performance")
 
-    # Generate expected performance based on user preferences
-    if risk_tolerance in ["Very Low", "Low"]:
-        expected_return = np.random.uniform(5, 8)
-        expected_volatility = np.random.uniform(5, 10)
-    elif risk_tolerance == "Moderate":
-        expected_return = np.random.uniform(8, 12)
-        expected_volatility = np.random.uniform(10, 15)
-    else:  # High or Very High
-        expected_return = np.random.uniform(12, 20)
-        expected_volatility = np.random.uniform(15, 25)
+    # Use ML model for risk assessment
+    try:
+        # Convert column names to lowercase for consistency with ML model
+        ml_assets = filtered_assets.copy()
+        ml_assets.columns = [col.lower() for col in ml_assets.columns]
 
-    # Adjust based on sustainability focus
-    if sustainability_focus == "Impact First":
-        expected_return *= 0.9  # Slightly lower returns for impact focus
-        expected_esg = np.random.uniform(80, 95)
-    elif sustainability_focus == "Balanced Approach":
-        expected_esg = np.random.uniform(70, 85)
-    else:  # Financial Returns First
-        expected_return *= 1.1  # Slightly higher returns for financial focus
-        expected_esg = np.random.uniform(60, 75)
+        # Get ML risk assessment
+        risk_assessment = get_ml_risk_assessment(ml_assets, user_preferences)
+
+        # Extract expected performance metrics from risk assessment
+        expected_volatility = risk_assessment['portfolio_metrics']['volatility'] * 100
+        expected_return = 5 + (user_preferences['risk_tolerance'] / 2) + (expected_volatility / 3)
+        expected_esg = 100 - risk_assessment['portfolio_metrics']['esg_risk_score']
+
+        # Adjust based on user preferences
+        if sustainability_focus == "Impact First":
+            expected_return *= 0.95  # Slightly lower returns for impact focus
+            expected_esg *= 1.05     # Higher ESG score for impact focus
+        elif sustainability_focus == "Financial Returns First":
+            expected_return *= 1.05  # Slightly higher returns for financial focus
+            expected_esg *= 0.95     # Lower ESG score for financial focus
+
+        # Ensure values are within reasonable ranges
+        expected_return = min(max(expected_return, 3), 25)
+        expected_volatility = min(max(expected_volatility, 3), 30)
+        expected_esg = min(max(expected_esg, 50), 95)
+    except Exception as e:
+        st.warning(f"ML risk assessment not available, using rule-based assessment instead. Error: {str(e)}")
+        # Fallback to rule-based assessment
+        # Generate expected performance based on user preferences
+        if risk_tolerance in ["Very Low", "Low"]:
+            expected_return = np.random.uniform(5, 8)
+            expected_volatility = np.random.uniform(5, 10)
+        elif risk_tolerance == "Moderate":
+            expected_return = np.random.uniform(8, 12)
+            expected_volatility = np.random.uniform(10, 15)
+        else:  # High or Very High
+            expected_return = np.random.uniform(12, 20)
+            expected_volatility = np.random.uniform(15, 25)
+
+        # Adjust based on sustainability focus
+        if sustainability_focus == "Impact First":
+            expected_return *= 0.9  # Slightly lower returns for impact focus
+            expected_esg = np.random.uniform(80, 95)
+        elif sustainability_focus == "Balanced Approach":
+            expected_esg = np.random.uniform(70, 85)
+        else:  # Financial Returns First
+            expected_return *= 1.1  # Slightly higher returns for financial focus
+            expected_esg = np.random.uniform(60, 75)
 
     col1, col2, col3 = st.columns(3)
 
@@ -542,9 +699,171 @@ if st.button("Generate Personalized Recommendations"):
     with col3:
         st.metric("Expected ESG Score", f"{expected_esg:.1f}/100")
 
+    # Show how preferences affect recommendations
+    st.markdown("## How Your Preferences Affect Recommendations")
+    st.markdown("Our AI model adjusts recommendations based on your specific preferences")
+
+    # Create a comparison of how different preferences would change recommendations
+    st.markdown("### Recommendation Sensitivity Analysis")
+
+    # Create columns for the sensitivity analysis
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("#### If you were more risk-tolerant:")
+        # Calculate what would change if risk tolerance was higher
+        higher_risk_prefs = user_preferences.copy()
+        higher_risk_prefs['risk_tolerance'] = min(user_preferences['risk_tolerance'] + 3, 10)
+
+        try:
+            # Get recommendations with higher risk tolerance
+            higher_risk_assets = filtered_assets.copy()
+            higher_risk_assets.columns = [col.lower() for col in higher_risk_assets.columns]
+            higher_risk_recs = get_ml_portfolio_recommendations(higher_risk_assets, higher_risk_prefs)
+
+            # Show top 3 assets that would be recommended with higher risk tolerance
+            st.markdown("You might consider these higher-growth opportunities:")
+            for i, (_, asset) in enumerate(higher_risk_recs.head(3).iterrows()):
+                if i < 3:
+                    st.markdown(f"- **{asset['name']}** ({asset['ticker']}) - Higher growth potential with {asset['volatility']*100:.1f}% volatility")
+        except Exception as e:
+            st.markdown("- Higher-growth tech companies with stronger returns")
+            st.markdown("- Emerging market opportunities with higher volatility")
+            st.markdown("- Innovative startups with disruptive potential")
+
+    with col2:
+        st.markdown("#### If you were more sustainability-focused:")
+        # Calculate what would change if sustainability focus was higher
+        higher_sus_prefs = user_preferences.copy()
+        higher_sus_prefs['sustainability_focus'] = min(user_preferences['sustainability_focus'] + 3, 10)
+
+        try:
+            # Get recommendations with higher sustainability focus
+            higher_sus_assets = filtered_assets.copy()
+            higher_sus_assets.columns = [col.lower() for col in higher_sus_assets.columns]
+            higher_sus_recs = get_ml_portfolio_recommendations(higher_sus_assets, higher_sus_prefs)
+
+            # Show top 3 assets that would be recommended with higher sustainability focus
+            st.markdown("You might prioritize these sustainability leaders:")
+            for i, (_, asset) in enumerate(higher_sus_recs.head(3).iterrows()):
+                if i < 3:
+                    st.markdown(f"- **{asset['name']}** ({asset['ticker']}) - Strong ESG score of {asset['esg_score']:.1f}/100")
+        except Exception as e:
+            st.markdown("- Renewable energy companies with strong environmental practices")
+            st.markdown("- B-Corp certified businesses with social impact")
+            st.markdown("- Companies with science-based climate targets")
+
     # Market insights
     st.markdown("## Market Insights")
     st.markdown("Our AI analyzes market trends and ESG developments to provide you with actionable insights")
+
+    # Add market sentiment analysis for top recommendation
+    if len(top_recommendations) > 0:
+        st.markdown("### AI Market Sentiment Analysis")
+        st.markdown(f"Our ML model analyzed recent news and market sentiment for your top recommendation:")
+
+        # Get top recommendation ticker
+        top_ticker = top_recommendations.iloc[0]['Ticker']
+
+        try:
+            # Get sentiment analysis with user preferences
+            sentiment_analysis = get_ml_market_sentiment(top_ticker, user_preferences)
+
+            # Display sentiment score
+            sentiment_score = sentiment_analysis['sentiment_score']
+            sentiment_color = "#4CAF50" if sentiment_score > 30 else "#FFC107" if sentiment_score > -10 else "#F44336"
+
+            st.markdown(f"<h4 style='text-align: center;'>Market Sentiment for {top_ticker}: <span style='color: {sentiment_color};'>{sentiment_analysis['overall_sentiment']}</span></h4>", unsafe_allow_html=True)
+
+            # Create sentiment gauge
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=sentiment_score,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Market Sentiment Score"},
+                gauge={
+                    'axis': {'range': [-100, 100], 'tickwidth': 1},
+                    'bar': {'color': sentiment_color},
+                    'steps': [
+                        {'range': [-100, -30], 'color': "#F44336"},
+                        {'range': [-30, -10], 'color': "#FFC107"},
+                        {'range': [-10, 10], 'color': "#9E9E9E"},
+                        {'range': [10, 30], 'color': "#8BC34A"},
+                        {'range': [30, 100], 'color': "#4CAF50"}
+                    ],
+                }
+            ))
+
+            fig.update_layout(
+                height=250,
+                margin=dict(l=20, r=20, t=50, b=20),
+                template=plotly_template
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Display recent news if available
+            if 'news' in sentiment_analysis:
+                st.markdown("#### Recent News Analysis")
+
+                for news in sentiment_analysis['news'][:3]:  # Show top 3 news items
+                    # Sentiment icon and color
+                    sentiment_icon = {
+                        'positive': '🟢',
+                        'neutral': '🟡',
+                        'negative': '🔴'
+                    }.get(news['predicted_sentiment'], '🟡')
+
+                    sentiment_color = {
+                        'positive': '#4CAF50',
+                        'neutral': '#9E9E9E',
+                        'negative': '#F44336'
+                    }.get(news['predicted_sentiment'], '#9E9E9E')
+
+                    # Display news item
+                    st.markdown(f"""
+                    <div style="padding: 10px; border-left: 4px solid {sentiment_color}; margin-bottom: 10px; background-color: {theme_secondary_bg}">
+                        <p style="margin: 0; font-weight: bold;">{news['headline']}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.8rem; opacity: 0.8;">
+                            {news['source']} | {news['publication_date']} |
+                            <span style="color: {sentiment_color};">AI Sentiment: {sentiment_icon} {news['predicted_sentiment'].capitalize()}</span>
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                # Trading implications based on sentiment
+                st.markdown("#### Trading Implications")
+
+                if sentiment_analysis['overall_sentiment'] in ['Bullish', 'Somewhat Bullish']:
+                    st.markdown("""
+                    - **Consider increasing position** if aligned with your investment strategy
+                    - **Monitor for confirmation** through technical indicators and volume
+                    - **Set appropriate stop-loss levels** to protect against unexpected reversals
+                    """)
+                elif sentiment_analysis['overall_sentiment'] == 'Neutral':
+                    st.markdown("""
+                    - **Maintain current position** if already invested
+                    - **Watch for emerging trends** in either direction
+                    - **Focus on fundamentals** rather than short-term sentiment
+                    """)
+                else:  # Bearish or Somewhat Bearish
+                    st.markdown("""
+                    - **Consider reducing exposure** if already invested
+                    - **Implement hedging strategies** to protect against downside
+                    - **Watch for potential overselling** that might create entry opportunities
+                    """)
+        except Exception as e:
+            st.warning(f"Could not generate sentiment analysis: {str(e)}")
+            # Fallback to generic sentiment information
+            st.markdown("""
+            Market sentiment analysis uses natural language processing to evaluate news, social media, and analyst reports.
+            This helps identify market perception and potential price movements before they're reflected in the price.
+
+            Key benefits of sentiment analysis:
+            - **Early warning system** for changing market conditions
+            - **Reduction of emotional bias** in investment decisions
+            - **Identification of contrarian opportunities** when sentiment diverges from fundamentals
+            """)
 
     # Filter trends relevant to selected sectors if sectors are selected
     relevant_trends = []
@@ -834,6 +1153,25 @@ with st.expander("View UN Sustainable Development Goals (SDGs)"):
 
 # FAQ section
 st.markdown("## Frequently Asked Questions")
+
+with st.expander("How do the AI recommendation models work?"):
+    st.markdown("""
+    Our AI recommendation system uses multiple machine learning models working together:
+
+    1. **Portfolio Recommendation Model**: Uses gradient boosting to analyze assets based on financial and ESG metrics
+
+    2. **Risk Assessment Model**: Employs random forest classification to evaluate portfolio risk across multiple dimensions
+
+    3. **Sentiment Analysis Model**: Utilizes natural language processing to analyze market news and sentiment
+
+    These models are dynamically adjusted based on your specific preferences:
+
+    - **Risk Tolerance**: Affects the weight given to volatility, beta, and other risk metrics
+    - **Sustainability Focus**: Adjusts the importance of environmental, social, and governance factors
+    - **Investment Horizon**: Modifies the time-frame relevance of different metrics
+
+    The models continuously learn and improve as more data becomes available, ensuring recommendations remain relevant and accurate.
+    """)
 
 with st.expander("How are ESG scores calculated?"):
     st.markdown("""
