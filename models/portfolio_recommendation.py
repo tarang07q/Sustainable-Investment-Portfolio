@@ -8,22 +8,26 @@ based on user preferences, market data, and ESG criteria.
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+from xgboost import XGBRegressor
+from typing import Dict, Any, List, Tuple
 import joblib
 import os
 
-class PortfolioRecommendationModel:
-    """Machine learning model for portfolio recommendations."""
-
+class PortfolioRecommender:
     def __init__(self):
-        """Initialize the model."""
-        self.model = None
+        """Initialize the Portfolio Recommendation model."""
+        self.model = XGBRegressor(
+            objective='reg:squarederror',
+            learning_rate=0.1,
+            max_depth=6,
+            n_estimators=100,
+            random_state=42
+        )
         self.scaler = StandardScaler()
-        self.features = [
-            'esg_score', 'environmental_score', 'social_score', 'governance_score',
-            'roi_1y', 'volatility', 'market_cap_b', 'price_change_24h'
+        self.feature_columns = [
+            'market_cap', 'volatility', 'roi_1y',
+            'esg_score', 'environmental_score',
+            'social_score', 'governance_score'
         ]
 
         # Create model directory if it doesn't exist
@@ -36,72 +40,231 @@ class PortfolioRecommendationModel:
         except:
             print("No pre-trained model found. Will train a new model when needed.")
 
-    def preprocess_data(self, data):
-        """Preprocess data for model training or prediction."""
-        # Extract features
-        X = data[self.features].copy()
-
+    def preprocess_data(self, data: pd.DataFrame) -> np.ndarray:
+        """
+        Preprocess the input data for the model.
+        
+        Args:
+            data (pd.DataFrame): Raw input data
+            
+        Returns:
+            np.ndarray: Preprocessed features
+        """
+        # Select relevant features
+        features = data[self.feature_columns].copy()
+        
         # Handle missing values
-        X.fillna(X.mean(), inplace=True)
-
+        features = features.fillna(features.mean())
+        
         # Scale features
-        X_scaled = self.scaler.fit_transform(X)
+        scaled_features = self.scaler.fit_transform(features)
+        
+        return scaled_features
 
-        return X_scaled
-
-    def train(self, data, target_col='custom_score'):
-        """Train the model on the given data."""
-        # Preprocess data
+    def train(self, data: pd.DataFrame, target: str = 'performance_score'):
+        """
+        Train the model on historical data.
+        
+        Args:
+            data (pd.DataFrame): Training data
+            target (str): Target variable name
+        """
         X = self.preprocess_data(data)
-        y = data[target_col].values
+        y = data[target]
+        
+        self.model.fit(X, y)
 
-        # Split data into training and validation sets
-        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+    def predict(self, data: pd.DataFrame) -> np.ndarray:
+        """
+        Generate predictions for new data.
+        
+        Args:
+            data (pd.DataFrame): Input data
+            
+        Returns:
+            np.ndarray: Predicted scores
+        """
+        X = self.preprocess_data(data)
+        return self.model.predict(X)
 
-        # Train model
-        self.model = GradientBoostingRegressor(
-            n_estimators=100,
-            learning_rate=0.1,
-            max_depth=4,
-            random_state=42
+    def generate_recommendations(
+        self,
+        all_assets: pd.DataFrame,
+        user_preferences: Dict[str, Any],
+        top_n: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate personalized investment recommendations.
+        
+        Args:
+            all_assets (pd.DataFrame): Available assets data
+            user_preferences (Dict[str, Any]): User preferences
+            top_n (int): Number of recommendations to generate
+            
+        Returns:
+            List[Dict[str, Any]]: Ranked recommendations
+        """
+        # Get base predictions
+        base_scores = self.predict(all_assets)
+        
+        # Adjust scores based on user preferences
+        adjusted_scores = self._adjust_scores(
+            base_scores,
+            all_assets,
+            user_preferences
         )
-        self.model.fit(X_train, y_train)
+        
+        # Rank and select top recommendations
+        recommendations = self._rank_recommendations(
+            all_assets,
+            adjusted_scores,
+            top_n
+        )
+        
+        return recommendations
 
-        # Evaluate model
-        train_preds = self.model.predict(X_train)
-        val_preds = self.model.predict(X_val)
+    def _adjust_scores(
+        self,
+        base_scores: np.ndarray,
+        assets: pd.DataFrame,
+        preferences: Dict[str, Any]
+    ) -> np.ndarray:
+        """
+        Adjust prediction scores based on user preferences.
+        
+        Args:
+            base_scores (np.ndarray): Base model predictions
+            assets (pd.DataFrame): Asset data
+            preferences (Dict[str, Any]): User preferences
+            
+        Returns:
+            np.ndarray: Adjusted scores
+        """
+        # Get preference weights
+        risk_weight = (11 - preferences['risk_tolerance']) / 10
+        esg_weight = preferences['sustainability_focus'] / 10
+        return_weight = 1 - risk_weight - esg_weight/2
+        
+        # Calculate component scores
+        risk_scores = 1 - assets['volatility']
+        esg_scores = assets['esg_score'] / 100
+        return_scores = assets['roi_1y'] / 100
+        
+        # Combine scores
+        adjusted_scores = (
+            base_scores * 0.4 +
+            risk_scores * risk_weight * 0.2 +
+            esg_scores * esg_weight * 0.2 +
+            return_scores * return_weight * 0.2
+        )
+        
+        return adjusted_scores
 
-        train_rmse = np.sqrt(mean_squared_error(y_train, train_preds))
-        val_rmse = np.sqrt(mean_squared_error(y_val, val_preds))
+    def _rank_recommendations(
+        self,
+        assets: pd.DataFrame,
+        scores: np.ndarray,
+        top_n: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Rank assets and create recommendation objects.
+        
+        Args:
+            assets (pd.DataFrame): Asset data
+            scores (np.ndarray): Adjusted prediction scores
+            top_n (int): Number of recommendations to return
+            
+        Returns:
+            List[Dict[str, Any]]: Ranked recommendations
+        """
+        # Create DataFrame with scores
+        ranked_assets = assets.copy()
+        ranked_assets['score'] = scores
+        
+        # Sort by score
+        ranked_assets = ranked_assets.sort_values('score', ascending=False)
+        
+        # Select top N recommendations
+        top_recommendations = []
+        for _, asset in ranked_assets.head(top_n).iterrows():
+            recommendation = {
+                'ticker': asset['Ticker'],
+                'name': asset['Name'],
+                'sector': asset['Sector'],
+                'current_price': asset['Current_Price'],
+                'price_change': asset['Price_Change_24h'],
+                'esg_score': asset['ESG_Score'],
+                'roi_1y': asset['ROI_1Y'],
+                'volatility': asset['Volatility'],
+                'recommendation_score': asset['score'],
+                'recommendation_strength': self._get_recommendation_strength(asset['score'])
+            }
+            top_recommendations.append(recommendation)
+        
+        return top_recommendations
 
-        train_r2 = r2_score(y_train, train_preds)
-        val_r2 = r2_score(y_val, val_preds)
+    def _get_recommendation_strength(self, score: float) -> str:
+        """
+        Convert score to recommendation strength category.
+        
+        Args:
+            score (float): Recommendation score
+            
+        Returns:
+            str: Recommendation strength category
+        """
+        if score >= 0.8:
+            return 'Strong Buy'
+        elif score >= 0.6:
+            return 'Buy'
+        elif score >= 0.4:
+            return 'Hold'
+        elif score >= 0.2:
+            return 'Consider with Caution'
+        else:
+            return 'Not Recommended'
 
-        print(f"Training RMSE: {train_rmse:.4f}, R²: {train_r2:.4f}")
-        print(f"Validation RMSE: {val_rmse:.4f}, R²: {val_r2:.4f}")
+    def get_feature_importance(self) -> Dict[str, float]:
+        """
+        Get feature importance scores.
+        
+        Returns:
+            Dict[str, float]: Feature importance scores
+        """
+        importance_scores = self.model.feature_importances_
+        return dict(zip(self.feature_columns, importance_scores))
 
-        # Save model
-        self.save_model()
-
-        return {
-            'train_rmse': train_rmse,
-            'val_rmse': val_rmse,
-            'train_r2': train_r2,
-            'val_r2': val_r2
-        }
-
-    def predict(self, data):
-        """Generate recommendations based on the trained model."""
-        if self.model is None:
-            raise ValueError("Model not trained. Call train() first.")
-
-        # Preprocess data
-        X = self.preprocess_data(data)
-
+    def evaluate_model(
+        self,
+        test_data: pd.DataFrame,
+        target: str = 'performance_score'
+    ) -> Dict[str, float]:
+        """
+        Evaluate model performance on test data.
+        
+        Args:
+            test_data (pd.DataFrame): Test data
+            target (str): Target variable name
+            
+        Returns:
+            Dict[str, float]: Performance metrics
+        """
+        from sklearn.metrics import mean_squared_error, r2_score
+        
         # Generate predictions
-        predictions = self.model.predict(X)
-
-        return predictions
+        X_test = self.preprocess_data(test_data)
+        y_test = test_data[target]
+        y_pred = self.model.predict(X_test)
+        
+        # Calculate metrics
+        mse = mean_squared_error(y_test, y_pred)
+        r2 = r2_score(y_test, y_pred)
+        
+        return {
+            'mse': mse,
+            'rmse': np.sqrt(mse),
+            'r2': r2
+        }
 
     def save_model(self):
         """Save the trained model to disk."""
@@ -169,7 +332,7 @@ def get_portfolio_recommendations(portfolio_assets, all_assets, user_preferences
         DataFrame of recommended assets with scores
     """
     # Create and train model if needed
-    model = PortfolioRecommendationModel()
+    model = PortfolioRecommender()
 
     # If model not loaded, train it on synthetic data
     if model.model is None:

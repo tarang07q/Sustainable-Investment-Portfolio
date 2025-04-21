@@ -134,9 +134,24 @@ def display_ml_recommendations(recommendations, theme_colors):
 
             st.markdown(f"<h1 style='font-size: 3rem; margin: 0; text-align: center;'>{icon}</h1>", unsafe_allow_html=True)
 
-            # Recommendation strength
-            rec_color = "#4CAF50" if "Strong" in asset['recommendation_strength'] else "#FFC107" if "Moderate" in asset['recommendation_strength'] else "#F44336"
-            st.markdown(f"<p style='text-align: center; color: {rec_color}; font-weight: bold;'>{asset['recommendation_strength']}</p>", unsafe_allow_html=True)
+            # Recommendation strength - handle missing recommendation_strength
+            if 'recommendation_strength' in asset:
+                rec_strength = asset['recommendation_strength']
+            else:
+                # Assign a default recommendation strength based on other metrics if available
+                if 'esg_score' in asset and 'roi_1y' in asset:
+                    if asset['esg_score'] > 70 and asset['roi_1y'] > 15:
+                        rec_strength = 'Strong Recommendation'
+                    elif asset['esg_score'] > 60 or asset['roi_1y'] > 10:
+                        rec_strength = 'Moderate Opportunity'
+                    else:
+                        rec_strength = 'Consider with Caution'
+                else:
+                    rec_strength = 'Moderate Opportunity'
+
+            # Set color based on recommendation strength
+            rec_color = "#4CAF50" if "Strong" in rec_strength else "#FFC107" if "Moderate" in rec_strength else "#F44336"
+            st.markdown(f"<p style='text-align: center; color: {rec_color}; font-weight: bold;'>{rec_strength}</p>", unsafe_allow_html=True)
 
         with col2:
             # Asset details
@@ -155,17 +170,34 @@ def display_ml_recommendations(recommendations, theme_colors):
                 st.metric("Volatility", f"{asset['volatility']:.2f}")
 
             with metrics_col4:
-                st.metric("ML Score", f"{asset['final_score']:.1f}")
+                # Check if final_score exists, otherwise use ml_score or recommendation_score or a default value
+                if 'final_score' in asset:
+                    score = asset['final_score']
+                elif 'ml_score' in asset:
+                    score = asset['ml_score']
+                elif 'recommendation_score' in asset:
+                    score = asset['recommendation_score']
+                else:
+                    score = 0.0
+                st.metric("ML Score", f"{score:.1f}")
 
             # Recommendation rationale
             st.markdown("**AI Recommendation Rationale:**")
 
-            if "Strong" in asset['recommendation_strength']:
-                rationale = f"This {asset['asset_type'].lower()} shows strong potential with excellent ESG credentials and favorable risk-return characteristics. Our ML model gives it a high score based on its sustainability profile and financial metrics."
-            elif "Moderate" in asset['recommendation_strength']:
-                rationale = f"This {asset['asset_type'].lower()} presents a balanced opportunity with decent ESG performance and acceptable risk-return characteristics. Our ML model suggests considering it as part of a diversified portfolio."
+            # Get asset type with fallback
+            asset_type = asset.get('asset_type', 'investment')
+            if isinstance(asset_type, str):
+                asset_type = asset_type.lower()
             else:
-                rationale = f"This {asset['asset_type'].lower()} may present higher risks or lower ESG performance. Our ML model suggests careful consideration before investing."
+                asset_type = 'investment'
+
+            # Use the previously determined rec_strength variable
+            if "Strong" in rec_strength:
+                rationale = f"This {asset_type} shows strong potential with excellent ESG credentials and favorable risk-return characteristics. Our ML model gives it a high score based on its sustainability profile and financial metrics."
+            elif "Moderate" in rec_strength:
+                rationale = f"This {asset_type} presents a balanced opportunity with decent ESG performance and acceptable risk-return characteristics. Our ML model suggests considering it as part of a diversified portfolio."
+            else:
+                rationale = f"This {asset_type} may present higher risks or lower ESG performance. Our ML model suggests careful consideration before investing."
 
             st.markdown(rationale)
 

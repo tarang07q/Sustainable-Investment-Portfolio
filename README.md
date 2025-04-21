@@ -1,128 +1,280 @@
-# Sustainable Investment Portfolio App
+# ML Portfolio Manager
 
-An AI-powered platform that helps users create sustainable investment portfolios by balancing profitability with environmental, social, and governance (ESG) criteria. The application features a modern dark-themed interface and provides educational resources on sustainable investing that are accessible without requiring user authentication.
+A comprehensive investment portfolio management system with AI-powered recommendations, ESG (Environmental, Social, and Governance) analysis, and machine learning models for sustainable investing.
 
-## Features
+## Project Overview
 
-### Market Explorer
-- Browse stocks and cryptocurrencies with ESG ratings
-- Filter assets by sector, ESG score, and other criteria
-- View detailed asset information including ESG breakdown
-- Track price history and performance metrics
+The ML Portfolio Manager is a sophisticated web application built with Streamlit that combines traditional financial analysis with machine learning and ESG considerations to provide personalized investment recommendations. The system uses multiple ML models to analyze assets, assess risks, and generate sustainable investment strategies.
 
-### Portfolio Manager
-- Create and manage custom investment portfolios
-- Track portfolio performance against benchmarks
-- Analyze asset allocation and risk metrics
-- Generate impact reports showing environmental and social contributions
+## Key Features
 
-### AI Recommendations
-- Receive personalized investment recommendations based on your preferences
-- Set your risk tolerance, investment horizon, and sustainability focus
-- Get insights on market trends and ESG developments
-- Understand the reasoning behind each recommendation
+### 1. Portfolio Management
+- Real-time portfolio tracking and analysis
+- Asset allocation visualization
+- Performance metrics and historical data
+- Multi-currency support
+- Custom watchlists and alerts
 
-### ESG Education Center
-- Learn about sustainable investing principles
-- Explore the UN Sustainable Development Goals (SDGs)
-- Understand impact measurement methodologies
-- Access educational resources and a sustainable investing glossary
-- **Publicly accessible** without requiring login or account creation
-- Features a modern dark-themed interface for comfortable reading
+### 2. AI-Powered Recommendations
+Three main ML models power the recommendation system:
 
-## Setup
+#### a. Portfolio Recommendation Model
+- **Algorithm**: XGBoost
+- **Features**:
+  - Financial metrics (ROI, volatility, market cap)
+  - ESG scores
+  - Market trends
+  - Risk metrics
+- **Output**: Personalized asset recommendations with confidence scores
+- **Training Data**: Historical market data, ESG ratings, financial performance
+
+#### b. Risk Assessment Model
+- **Algorithm**: Random Forest Classifier
+- **Features**:
+  - Market volatility
+  - ESG risk factors
+  - Industry-specific risks
+  - Economic indicators
+- **Output**: Risk scores and categorization (Low/Medium/High)
+- **Training Data**: Historical risk events, market volatility data, ESG incidents
+
+#### c. Sentiment Analysis Model
+- **Algorithm**: BERT-based model with TF-IDF
+- **Features**:
+  - News headlines
+  - Social media sentiment
+  - Market reports
+  - Company announcements
+- **Output**: Sentiment scores and market sentiment trends
+- **Training Data**: Financial news, social media data, market sentiment labels
+
+### 3. ESG Integration
+- Comprehensive ESG scoring system
+- UN SDG (Sustainable Development Goals) alignment
+- Carbon footprint tracking
+- Sustainability trend analysis
+- ESG risk assessment
+
+### 4. Market Explorer
+- Real-time market data visualization
+- Technical analysis tools
+- Fundamental analysis metrics
+- ESG performance indicators
+- Sector-specific insights
+
+### 5. User Profile & Preferences
+- Risk tolerance assessment
+- Investment horizon setting
+- Sustainability focus customization
+- Sector preferences
+- Asset type preferences
+
+## Technical Architecture
+
+### Frontend
+- **Framework**: Streamlit
+- **Visualization**: Plotly, Matplotlib
+- **UI Components**: Custom CSS, Responsive Design
+- **Interactive Elements**: Dynamic filters, Real-time updates
+
+### Backend
+- **Language**: Python 3.8+
+- **ML Framework**: Scikit-learn, XGBoost, TensorFlow
+- **Data Processing**: Pandas, NumPy
+- **API Integration**: RESTful APIs, WebSocket
+
+### Database
+- **Type**: SQL/NoSQL (configurable)
+- **Data Models**:
+  - User profiles
+  - Portfolio data
+  - Market data
+  - ESG metrics
+  - ML model results
+
+### ML Models Integration
+```python
+# Example of ML model integration
+class PortfolioRecommender:
+    def __init__(self):
+        self.model = XGBRegressor(
+            objective='reg:squarederror',
+            learning_rate=0.1,
+            max_depth=6,
+            n_estimators=100
+        )
+        
+    def preprocess_data(self, data):
+        # Feature engineering
+        features = [
+            'market_cap', 'volatility', 'roi_1y',
+            'esg_score', 'environmental_score',
+            'social_score', 'governance_score'
+        ]
+        return data[features]
+        
+    def generate_recommendations(self, user_preferences, market_data):
+        # Process data and generate recommendations
+        processed_data = self.preprocess_data(market_data)
+        scores = self.model.predict(processed_data)
+        return self.rank_recommendations(scores, user_preferences)
+```
+
+## Data Sources
+
+### Market Data
+- Real-time price data
+- Historical performance
+- Trading volumes
+- Market indicators
+
+### ESG Data
+- Company ESG ratings
+- Sustainability reports
+- Carbon emissions data
+- SDG alignment metrics
+
+### News and Sentiment
+- Financial news APIs
+- Social media feeds
+- Market analysis reports
+- Company announcements
+
+## Installation & Setup
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/tarang07q/Sustainable-Investment-Portfolio.git
-cd Sustainable-Investment-Portfolio
+git clone https://github.com/yourusername/ml-portfolio-manager.git
+cd ml-portfolio-manager
 ```
 
-2. Create a virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Set up environment variables:
-   - Create a `.env` file in the project root
-   - Add your Supabase credentials:
-   ```
-   SUPABASE_URL=your-supabase-url
-   SUPABASE_KEY=your-supabase-anon-key
-   ```
-
-5. Run the application:
+3. Set up environment variables:
 ```bash
-streamlit run app.py
+cp .env.example .env
+# Edit .env with your API keys and configurations
 ```
 
-## Usage
-
-1. Start with the home page to understand the platform's capabilities
-2. Visit the ESG Education Center to learn about sustainable investing (no login required)
-3. Create an account or sign in through the Authentication page to access premium features
-4. Explore the Market Explorer to discover sustainable investment opportunities
-5. Use the AI Recommendations page to get personalized investment advice
-6. Create and manage your portfolio in the Portfolio Manager
-
-## Data
-
-The application uses simulated data for demonstration purposes. In a production environment, this would be replaced with real-time data from financial APIs and ESG rating providers.
-
-## Technologies Used
-
-- **Frontend**: Streamlit for the web interface
-- **Authentication**: Supabase for user management
-- **Data Sources**: Alpha Vantage API for financial data (simulated)
-- **Data Processing**: Pandas and NumPy for data manipulation
-- **Visualization**: Plotly for interactive charts
-- **Theme**: Dark mode interface with optimized color schemes for better readability and reduced eye strain
+4. Run the application:
+```bash
+python -m streamlit run app.py
+```
 
 ## Project Structure
-
 ```
-sustainable-investment-portfolio/
-├── app.py                  # Main application file
-├── update_pages.py         # Utility script for page updates
-├── pages/                  # Streamlit pages
-│   ├── 0_Authentication.py # User authentication
-│   ├── 1_Market_Explorer.py # Asset exploration
-│   ├── 2_Portfolio_Manager.py # Portfolio management
-│   ├── 3_AI_Recommendations.py # AI recommendations
-│   ├── 4_ESG_Education.py # Educational content
-│   └── 5_User_Profile.py  # User profile management
-├── utils/                  # Utility functions
-│   ├── __init__.py
-│   ├── financial_data.py   # Financial data handling
-│   ├── quotes.py           # Finance quotes
-│   ├── supabase.py         # Authentication utilities
-│   ├── auth_redirect.py    # Authentication redirection
-│   ├── sustainability_data.py # Sustainability data handling
-│   └── theme.py           # Theme management
-├── requirements.txt        # Project dependencies
-├── .env                    # Environment variables (not in git)
-└── README.md               # Project documentation
+ml-portfolio-manager/
+├── app.py                 # Main Streamlit application
+├── pages/                 # Streamlit pages
+│   ├── market_explorer.py
+│   ├── portfolio_manager.py
+│   ├── ai_recommendations.py
+│   └── esg_education.py
+├── models/               # ML models
+│   ├── portfolio_recommendation.py
+│   ├── risk_assessment.py
+│   └── sentiment_analysis.py
+├── utils/               # Utility functions
+│   ├── data_loader.py
+│   ├── esg_calculator.py
+│   └── market_analysis.py
+├── data/                # Data storage
+│   ├── market_data/
+│   ├── esg_data/
+│   └── user_data/
+└── tests/              # Unit tests
 ```
 
-## Recent Updates
+## ML Model Details
 
-- **Improved Authentication**: Enhanced the authentication page with a more intuitive interface and fixed HTML rendering issues
-- **Public ESG Education**: Made the ESG Education Center accessible without requiring login
-- **Dark Theme**: Implemented a dark-colored theme for better readability and reduced eye strain
-- **Enhanced UI**: Improved visual hierarchy, spacing, and component styling throughout the application
-- **Welcome Banner**: Added informative welcome banners for non-authenticated users
-- **Navigation**: Updated navigation to provide clearer access to educational resources
+### Portfolio Recommendation Model
+```python
+def train_portfolio_model(data, user_preferences):
+    """
+    Train the portfolio recommendation model using historical data
+    and user preferences.
+    """
+    features = [
+        'market_cap', 'volatility', 'roi_1y',
+        'esg_score', 'environmental_score',
+        'social_score', 'governance_score'
+    ]
+    
+    target = 'performance_score'
+    
+    X = data[features]
+    y = data[target]
+    
+    model = XGBRegressor(
+        objective='reg:squarederror',
+        learning_rate=0.1,
+        max_depth=6,
+        n_estimators=100
+    )
+    
+    model.fit(X, y)
+    return model
+```
 
-## Future Enhancements
+### Risk Assessment Model
+```python
+def assess_risk(portfolio_data):
+    """
+    Assess portfolio risk using multiple factors.
+    """
+    risk_factors = [
+        'market_volatility',
+        'esg_risk_score',
+        'sector_risk',
+        'liquidity_risk'
+    ]
+    
+    weights = {
+        'market_volatility': 0.3,
+        'esg_risk_score': 0.3,
+        'sector_risk': 0.2,
+        'liquidity_risk': 0.2
+    }
+    
+    risk_score = calculate_weighted_risk(portfolio_data, weights)
+    return categorize_risk(risk_score)
+```
 
-- Integration with real financial data APIs
-- Machine learning models for more sophisticated recommendations
-- Portfolio optimization algorithms
-- Mobile application version
-- Additional educational content and interactive tutorials
+### Sentiment Analysis Model
+```python
+def analyze_sentiment(news_data):
+    """
+    Analyze market sentiment using news and social media data.
+    """
+    vectorizer = TfidfVectorizer(max_features=1000)
+    classifier = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=10
+    )
+    
+    X = vectorizer.fit_transform(news_data['text'])
+    sentiment_scores = classifier.predict_proba(X)
+    return process_sentiment_scores(sentiment_scores)
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Financial data providers
+- ESG rating agencies
+- Open-source ML libraries
+- Streamlit community

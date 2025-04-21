@@ -1,399 +1,331 @@
 """
-Risk Assessment ML Model
+Risk Assessment Model
 
-This module implements a machine learning model for portfolio risk assessment
-based on asset characteristics and market conditions.
+This module provides risk assessment functionality for investment portfolios
+based on various risk factors including market volatility, ESG risks,
+sector-specific risks, and other relevant metrics.
 """
 
-import numpy as np
+from typing import Dict, List, Any, Tuple
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
-import joblib
-import os
+import numpy as np
 
-# Import data loader
-from utils.data_loader import load_portfolio_data, fill_missing_values
-
-class RiskAssessmentModel:
-    """Machine learning model for portfolio risk assessment."""
-
+class RiskAssessor:
     def __init__(self):
-        """Initialize the model."""
-        self.model = None
-        self.scaler = StandardScaler()
-        self.features = [
-            'volatility', 'beta', 'sharpe_ratio', 'market_correlation',
-            'esg_risk_score', 'sector_volatility', 'liquidity_ratio'
-        ]
+        """Initialize the Risk Assessment model."""
+        # Risk factor weights (can be adjusted based on requirements)
+        self.risk_weights = {
+            'market_volatility': 0.3,
+            'esg_risk': 0.3,
+            'sector_risk': 0.2,
+            'liquidity_risk': 0.2
+        }
 
-        # Create model directory if it doesn't exist
-        os.makedirs('models/saved', exist_ok=True)
+        # Risk thresholds for categorization
+        self.risk_thresholds = {
+            'low': 0.3,
+            'medium': 0.6,
+            'high': 1.0
+        }
 
-        # Try to load pre-trained model if it exists
+    def assess_portfolio_risk(
+        self,
+        portfolio_data: pd.DataFrame,
+        market_data: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Assess the overall risk of a portfolio.
+
+        Args:
+            portfolio_data (pd.DataFrame): Portfolio holdings and metrics
+            market_data (Dict[str, Any], optional): Additional market context
+
+        Returns:
+            Dict[str, Any]: Risk assessment results
+        """
         try:
-            self.load_model()
-            print("Pre-trained risk assessment model loaded successfully.")
-        except:
-            print("No pre-trained risk model found. Will train a new model when needed.")
+            # Calculate individual risk components
+            market_risk = self._calculate_market_risk(portfolio_data)
+            esg_risk = self._calculate_esg_risk(portfolio_data)
+            sector_risk = self._calculate_sector_risk(portfolio_data)
+            liquidity_risk = self._calculate_liquidity_risk(portfolio_data)
 
-    def preprocess_data(self, data):
-        """Preprocess data for model training or prediction."""
-        # Extract features
-        X = data[self.features].copy()
+            # Calculate weighted risk score
+            risk_score = (
+                market_risk * self.risk_weights['market_volatility'] +
+                esg_risk * self.risk_weights['esg_risk'] +
+                sector_risk * self.risk_weights['sector_risk'] +
+                liquidity_risk * self.risk_weights['liquidity_risk']
+            )
 
-        # Handle missing values - first check if any columns are completely missing
-        for feature in self.features:
-            if feature not in X.columns:
-                X[feature] = np.nan
+            # Determine risk category
+            risk_category = self._categorize_risk(risk_score)
 
-        # Fill missing values with appropriate defaults
-        default_values = {
-            'volatility': 0.2,
-            'beta': 1.0,
-            'sharpe_ratio': 1.5,
-            'market_correlation': 0.6,
-            'esg_risk_score': 25.0,
-            'sector_volatility': 0.2,
-            'liquidity_ratio': 2.0
-        }
+            # Generate risk breakdown
+            risk_breakdown = {
+                'Market Risk': market_risk,
+                'ESG Risk': esg_risk,
+                'Sector Risk': sector_risk,
+                'Liquidity Risk': liquidity_risk
+            }
 
-        for feature in self.features:
-            if X[feature].isnull().any():
-                if feature in default_values:
-                    X[feature] = X[feature].fillna(default_values[feature])
-                else:
-                    X[feature] = X[feature].fillna(X[feature].mean() if not X[feature].isnull().all() else 0.5)
+            return {
+                'risk_score': risk_score,
+                'risk_category': risk_category,
+                'risk_breakdown': risk_breakdown,
+                'risk_factors': self._identify_risk_factors(portfolio_data),
+                'recommendations': self._generate_risk_recommendations(risk_breakdown)
+            }
 
-        # Scale features
-        X_scaled = self.scaler.fit_transform(X)
+        except Exception as e:
+            print(f"Error in risk assessment: {str(e)}")
+            return self._generate_default_risk_assessment()
 
-        return X_scaled
+    def _calculate_market_risk(self, portfolio_data: pd.DataFrame) -> float:
+        """Calculate market risk based on volatility and beta."""
+        try:
+            # Use portfolio volatility as primary market risk indicator
+            volatilities = portfolio_data['Volatility'].fillna(0)
+            weights = portfolio_data['Weight'].fillna(1/len(portfolio_data))
 
-    def train(self, data, target_col='risk_category'):
-        """Train the model on the given data."""
-        # Preprocess data
-        X = self.preprocess_data(data)
-        y = data[target_col].values
+            # Calculate weighted average volatility
+            portfolio_volatility = np.sum(volatilities * weights)
 
-        # Split data into training and validation sets
-        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+            # Normalize to 0-1 scale
+            normalized_risk = min(portfolio_volatility / 0.5, 1.0)
 
-        # Train model
-        self.model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=5,
-            random_state=42
-        )
-        self.model.fit(X_train, y_train)
+            return normalized_risk
 
-        # Evaluate model
-        train_preds = self.model.predict(X_train)
-        val_preds = self.model.predict(X_val)
+        except Exception as e:
+            print(f"Error calculating market risk: {str(e)}")
+            return 0.5  # Return moderate risk as fallback
 
-        train_accuracy = accuracy_score(y_train, train_preds)
-        val_accuracy = accuracy_score(y_val, val_preds)
+    def _calculate_esg_risk(self, portfolio_data: pd.DataFrame) -> float:
+        """Calculate ESG risk based on ESG scores."""
+        try:
+            # Convert ESG scores to risk (lower score = higher risk)
+            esg_scores = portfolio_data['ESG_Score'].fillna(50)
+            weights = portfolio_data['Weight'].fillna(1/len(portfolio_data))
 
-        print(f"Training Accuracy: {train_accuracy:.4f}")
-        print(f"Validation Accuracy: {val_accuracy:.4f}")
-        print("\nClassification Report:")
-        print(classification_report(y_val, val_preds))
+            # Calculate weighted average ESG risk
+            esg_risk = np.sum((100 - esg_scores) / 100 * weights)
 
-        # Save model
-        self.save_model()
+            return min(esg_risk, 1.0)
 
+        except Exception as e:
+            print(f"Error calculating ESG risk: {str(e)}")
+            return 0.5
+
+    def _calculate_sector_risk(self, portfolio_data: pd.DataFrame) -> float:
+        """Calculate sector concentration risk."""
+        try:
+            # Calculate sector concentrations
+            sector_weights = portfolio_data.groupby('Sector')['Weight'].sum()
+
+            # Higher concentration = higher risk
+            max_sector_weight = sector_weights.max()
+
+            # Normalize to 0-1 scale (0.5 is considered diversified)
+            sector_risk = min(max_sector_weight / 0.5, 1.0)
+
+            return sector_risk
+
+        except Exception as e:
+            print(f"Error calculating sector risk: {str(e)}")
+            return 0.5
+
+    def _calculate_liquidity_risk(self, portfolio_data: pd.DataFrame) -> float:
+        """Calculate liquidity risk based on market cap and volume."""
+        try:
+            # Use market cap as proxy for liquidity
+            market_caps = portfolio_data['Market_Cap_B'].fillna(1)
+            weights = portfolio_data['Weight'].fillna(1/len(portfolio_data))
+
+            # Calculate weighted average liquidity risk
+            # Smaller market cap = higher risk
+            liquidity_risks = 1 / (1 + market_caps)  # Transform to 0-1 scale
+            portfolio_liquidity_risk = np.sum(liquidity_risks * weights)
+
+            return min(portfolio_liquidity_risk, 1.0)
+
+        except Exception as e:
+            print(f"Error calculating liquidity risk: {str(e)}")
+            return 0.5
+
+    def _categorize_risk(self, risk_score: float) -> str:
+        """Categorize risk score into risk level."""
+        if risk_score <= self.risk_thresholds['low']:
+            return '🟢 Low Risk'
+        elif risk_score <= self.risk_thresholds['medium']:
+            return '🟡 Medium Risk'
+        else:
+            return '🔴 High Risk'
+
+    def _identify_risk_factors(self, portfolio_data: pd.DataFrame) -> List[str]:
+        """Identify specific risk factors in the portfolio."""
+        risk_factors = []
+
+        # Check sector concentration
+        sector_weights = portfolio_data.groupby('Sector')['Weight'].sum()
+        if sector_weights.max() > 0.3:
+            risk_factors.append(f"High concentration in {sector_weights.idxmax()} sector")
+
+        # Check volatility
+        high_vol_assets = portfolio_data[portfolio_data['Volatility'] > 0.3]
+        if not high_vol_assets.empty:
+            risk_factors.append("High volatility assets present")
+
+        # Check ESG risks
+        low_esg_assets = portfolio_data[portfolio_data['ESG_Score'] < 50]
+        if not low_esg_assets.empty:
+            risk_factors.append("Assets with low ESG scores")
+
+        # Check market cap (liquidity)
+        small_cap_assets = portfolio_data[portfolio_data['Market_Cap_B'] < 1]
+        if not small_cap_assets.empty:
+            risk_factors.append("Small-cap assets present")
+
+        return risk_factors
+
+    def _generate_risk_recommendations(self, risk_breakdown: Dict[str, float]) -> List[str]:
+        """Generate recommendations based on risk assessment."""
+        recommendations = []
+
+        # Check each risk component
+        if risk_breakdown['Market Risk'] > 0.6:
+            recommendations.append("Consider reducing exposure to high-volatility assets")
+
+        if risk_breakdown['ESG Risk'] > 0.6:
+            recommendations.append("Review holdings with poor ESG scores")
+
+        if risk_breakdown['Sector Risk'] > 0.6:
+            recommendations.append("Increase sector diversification")
+
+        if risk_breakdown['Liquidity Risk'] > 0.6:
+            recommendations.append("Consider increasing allocation to more liquid assets")
+
+        if not recommendations:
+            recommendations.append("Portfolio risk levels are within acceptable ranges")
+
+        return recommendations
+
+    def _generate_default_risk_assessment(self) -> Dict[str, Any]:
+        """Generate a default risk assessment when calculation fails."""
         return {
-            'train_accuracy': train_accuracy,
-            'val_accuracy': val_accuracy
+            'risk_score': 0.5,
+            'risk_category': '🟡 Medium Risk',
+            'risk_breakdown': {
+                'Market Risk': 0.5,
+                'ESG Risk': 0.5,
+                'Sector Risk': 0.5,
+                'Liquidity Risk': 0.5
+            },
+            'risk_factors': ['Unable to calculate specific risk factors'],
+            'recommendations': ['Please review portfolio data for accurate risk assessment']
         }
 
-    def predict(self, data):
-        """Predict risk categories based on the trained model."""
-        if self.model is None:
-            raise ValueError("Model not trained. Call train() first.")
-
-        # Preprocess data
-        X = self.preprocess_data(data)
-
-        # Generate predictions
-        predictions = self.model.predict(X)
-        probabilities = self.model.predict_proba(X)
-
-        return predictions, probabilities
-
-    def save_model(self):
-        """Save the trained model to disk."""
-        if self.model is None:
-            raise ValueError("No model to save. Train the model first.")
-
-        joblib.dump(self.model, 'models/saved/risk_assessment_model.pkl')
-        joblib.dump(self.scaler, 'models/saved/risk_assessment_scaler.pkl')
-
-    def load_model(self):
-        """Load a trained model from disk."""
-        self.model = joblib.load('models/saved/risk_assessment_model.pkl')
-        self.scaler = joblib.load('models/saved/risk_assessment_scaler.pkl')
-
-# Function to generate synthetic training data
-def generate_training_data(n_samples=1000):
-    """Generate synthetic data for model training."""
-    np.random.seed(42)
-
-    # Generate features
-    volatility = np.random.uniform(0.05, 0.8, n_samples)
-    beta = np.random.uniform(0.2, 2.0, n_samples)
-    sharpe_ratio = np.random.uniform(-0.5, 3.0, n_samples)
-    market_correlation = np.random.uniform(0.1, 0.9, n_samples)
-    esg_risk_score = np.random.uniform(10, 90, n_samples)
-    sector_volatility = np.random.uniform(0.1, 0.6, n_samples)
-    liquidity_ratio = np.random.uniform(0.5, 5.0, n_samples)
-
-    # Create DataFrame
-    data = pd.DataFrame({
-        'volatility': volatility,
-        'beta': beta,
-        'sharpe_ratio': sharpe_ratio,
-        'market_correlation': market_correlation,
-        'esg_risk_score': esg_risk_score,
-        'sector_volatility': sector_volatility,
-        'liquidity_ratio': liquidity_ratio
-    })
-
-    # Generate risk score
-    data['risk_score'] = (
-        data['volatility'] * 30 +
-        data['beta'] * 15 +
-        (3.0 - data['sharpe_ratio']) * 10 +
-        data['market_correlation'] * 10 +
-        data['esg_risk_score'] * 0.2 +
-        data['sector_volatility'] * 20 +
-        (5.0 - data['liquidity_ratio']) * 5
-    )
-
-    # Categorize risk
-    data['risk_category'] = pd.cut(
-        data['risk_score'],
-        bins=[0, 20, 40, 60, 100],
-        labels=['Low', 'Moderate', 'High', 'Very High']
-    )
-
-    return data
-
-# Function to assess portfolio risk
-def assess_portfolio_risk(portfolio_assets, user_preferences=None):
+def calculate_portfolio_risk(portfolio_data: pd.DataFrame) -> Dict[str, Any]:
     """
-    Assess the risk of a portfolio using the ML model.
+    Convenience function to calculate portfolio risk.
 
     Args:
-        portfolio_assets: DataFrame of portfolio assets
-        user_preferences: Dict with user preferences (risk_tolerance, sustainability_focus)
+        portfolio_data (pd.DataFrame): Portfolio holdings and metrics
 
     Returns:
-        Dict with risk assessment results
+        Dict[str, Any]: Risk assessment results
+    """
+    risk_assessor = RiskAssessor()
+    return risk_assessor.assess_portfolio_risk(portfolio_data)
+
+
+def assess_portfolio_risk(portfolio_data: pd.DataFrame, user_preferences: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Assess portfolio risk with user preferences.
+
+    Args:
+        portfolio_data (pd.DataFrame): Portfolio holdings and metrics
+        user_preferences (Dict[str, Any], optional): User preferences including risk_tolerance and sustainability_focus
+
+    Returns:
+        Dict[str, Any]: Risk assessment results with risk score and category
     """
     try:
-        # Create and train model if needed
-        model = RiskAssessmentModel()
+        # Create risk assessor
+        risk_assessor = RiskAssessor()
 
-        # If model not loaded, train it on synthetic data
-        if model.model is None:
-            training_data = generate_training_data()
-            model.train(training_data)
+        # Get base risk assessment
+        risk_assessment = risk_assessor.assess_portfolio_risk(portfolio_data)
 
-        # Prepare portfolio data
-        if isinstance(portfolio_assets, pd.DataFrame):
-            portfolio_data = portfolio_assets.copy()
-        else:
-            # Convert to DataFrame if it's a list of dictionaries
-            portfolio_data = pd.DataFrame(portfolio_assets)
+        # Adjust risk assessment based on user preferences if provided
+        if user_preferences is not None:
+            # Get risk tolerance (1-10 scale)
+            risk_tolerance = user_preferences.get('risk_tolerance', 5)
 
-        # Ensure portfolio data has all required columns
-        portfolio_data = fill_missing_values(portfolio_data)
+            # Get sustainability focus (1-10 scale)
+            sustainability_focus = user_preferences.get('sustainability_focus', 5)
 
-        # Check if 'volatility' column exists, if not, add it with default values
-        if 'volatility' not in portfolio_data.columns:
-            portfolio_data['volatility'] = 0.2
+            # Adjust risk score based on risk tolerance
+            # Lower risk tolerance = higher perceived risk
+            risk_tolerance_factor = (11 - risk_tolerance) / 5  # 1.0-2.0 range
 
-        # Check if 'allocation' column exists, if not, calculate it
-        if 'allocation' not in portfolio_data.columns:
-            if 'current_value' in portfolio_data.columns:
-                total_value = portfolio_data['current_value'].sum()
-                portfolio_data['allocation'] = portfolio_data['current_value'] / total_value
+            # Adjust risk score based on sustainability focus
+            # Higher sustainability focus = higher sensitivity to ESG risks
+            sustainability_factor = sustainability_focus / 5  # 0.2-2.0 range
+
+            # Calculate ESG risk component
+            esg_risk = risk_assessment['risk_breakdown']['ESG Risk']
+
+            # Apply adjustments
+            adjusted_risk_score = risk_assessment['risk_score'] * (
+                1 + (risk_tolerance_factor - 1) * 0.3 +  # Risk tolerance adjustment
+                (sustainability_factor - 1) * 0.2 * esg_risk  # Sustainability adjustment
+            )
+
+            # Ensure risk score stays within 0-100 range
+            adjusted_risk_score = max(0, min(100, adjusted_risk_score))
+
+            # Update risk category based on adjusted score
+            if adjusted_risk_score <= 30:
+                risk_category = '🟢 Low Risk'
+            elif adjusted_risk_score <= 60:
+                risk_category = '🟡 Medium Risk'
             else:
-                # Equal allocation if current_value not available
-                portfolio_data['allocation'] = 1.0 / len(portfolio_data)
+                risk_category = '🔴 High Risk'
 
-        # Calculate portfolio-level metrics
-        try:
-            portfolio_volatility = np.average(
-                portfolio_data['volatility'],
-                weights=portfolio_data['allocation']
-            )
-        except Exception as e:
-            print(f"Error calculating portfolio volatility: {str(e)}")
-            portfolio_volatility = portfolio_data['volatility'].mean() if 'volatility' in portfolio_data.columns else 0.2
+            # Update risk assessment
+            risk_assessment['risk_score'] = adjusted_risk_score
+            risk_assessment['risk_category'] = risk_category
 
-        # Calculate or generate other metrics
-        try:
-            portfolio_beta = np.average(
-                portfolio_data['beta'] if 'beta' in portfolio_data.columns else np.random.uniform(0.8, 1.2, size=len(portfolio_data)),
-                weights=portfolio_data['allocation']
-            )
-        except:
-            portfolio_beta = 1.0
+        # Create risk factors dictionary for ML integration
+        risk_factors = {
+            'Market Risk': risk_assessment['risk_breakdown']['Market Risk'] * 100,
+            'ESG Risk': risk_assessment['risk_breakdown']['ESG Risk'] * 100,
+            'Sector Risk': risk_assessment['risk_breakdown']['Sector Risk'] * 100,
+            'Liquidity Risk': risk_assessment['risk_breakdown']['Liquidity Risk'] * 100
+        }
 
-        try:
-            portfolio_sharpe = np.average(
-                portfolio_data['sharpe_ratio'] if 'sharpe_ratio' in portfolio_data.columns else np.random.uniform(0.5, 2.5, size=len(portfolio_data)),
-                weights=portfolio_data['allocation']
-            )
-        except:
-            portfolio_sharpe = 1.5
+        # Add risk factors to assessment
+        risk_assessment['risk_factors'] = risk_factors
 
-        try:
-            portfolio_market_corr = np.average(
-                portfolio_data['market_correlation'] if 'market_correlation' in portfolio_data.columns else np.random.uniform(0.6, 0.9, size=len(portfolio_data)),
-                weights=portfolio_data['allocation']
-            )
-        except:
-            portfolio_market_corr = 0.7
+        return risk_assessment
 
-        try:
-            portfolio_esg_risk = 100 - np.average(
-                portfolio_data['esg_score'],
-                weights=portfolio_data['allocation']
-            )
-        except:
-            portfolio_esg_risk = 25.0
-
-        try:
-            portfolio_sector_vol = np.average(
-                portfolio_data['sector_volatility'] if 'sector_volatility' in portfolio_data.columns else np.random.uniform(0.1, 0.4, size=len(portfolio_data)),
-                weights=portfolio_data['allocation']
-            )
-        except:
-            portfolio_sector_vol = 0.2
-
-        try:
-            portfolio_liquidity = np.average(
-                portfolio_data['liquidity_ratio'] if 'liquidity_ratio' in portfolio_data.columns else np.random.uniform(1.5, 4.0, size=len(portfolio_data)),
-                weights=portfolio_data['allocation']
-            )
-        except:
-            portfolio_liquidity = 2.5
-
-        # Create a DataFrame for the portfolio
-        portfolio_metrics = pd.DataFrame({
-            'volatility': [portfolio_volatility],
-            'beta': [portfolio_beta],
-            'sharpe_ratio': [portfolio_sharpe],
-            'market_correlation': [portfolio_market_corr],
-            'esg_risk_score': [portfolio_esg_risk],
-            'sector_volatility': [portfolio_sector_vol],
-            'liquidity_ratio': [portfolio_liquidity]
-        })
-
-        try:
-            # Get risk prediction
-            risk_category, risk_probabilities = model.predict(portfolio_metrics)
-
-            # Calculate risk score (weighted average of probabilities)
-            risk_levels = {'Low': 1, 'Moderate': 2, 'High': 3, 'Very High': 4}
-            base_risk_score = sum(
-                prob * risk_levels[category]
-                for prob, category in zip(risk_probabilities[0], model.model.classes_)
-            ) * 25  # Scale to 0-100
-
-            # Adjust risk score based on user preferences if provided
-            if user_preferences is not None:
-                # Risk tolerance adjustment (1-10 scale)
-                # Higher risk tolerance = lower perceived risk
-                risk_tolerance_factor = user_preferences.get('risk_tolerance', 5) / 5  # 0.2-2.0 range
-
-                # Sustainability focus adjustment (1-10 scale)
-                # Higher sustainability focus = higher sensitivity to ESG risk
-                sustainability_factor = user_preferences.get('sustainability_focus', 5) / 5  # 0.2-2.0 range
-
-                # Adjust risk components
-                market_risk_weight = 1.0 / risk_tolerance_factor
-                esg_risk_weight = sustainability_factor
-
-                # Calculate adjusted risk score
-                risk_score = base_risk_score * 0.4 + \
-                           (portfolio_volatility * 100) * 0.3 * market_risk_weight + \
-                           portfolio_esg_risk * 0.3 * esg_risk_weight
-
-                # Ensure risk score is within 0-100 range
-                risk_score = min(max(risk_score, 0), 100)
-            else:
-                risk_score = base_risk_score
-
-            # Prepare detailed risk breakdown
-            risk_factors = {
-                'Market Risk': portfolio_volatility * 100,
-                'Systematic Risk': portfolio_beta * 50,
-                'Return-Risk Ratio': (3.0 - portfolio_sharpe) * 33.3,
-                'Market Correlation': portfolio_market_corr * 100,
-                'ESG Risk': portfolio_esg_risk,
-                'Sector Risk': portfolio_sector_vol * 100,
-                'Liquidity Risk': (5.0 - portfolio_liquidity) * 20
-            }
-
-            # Normalize risk factors to 0-100 scale
-            for factor in risk_factors:
-                risk_factors[factor] = min(max(risk_factors[factor], 0), 100)
-
-            return {
-                'risk_category': risk_category[0],
-                'risk_score': risk_score,
-                'risk_probabilities': {
-                    category: prob for category, prob in zip(model.model.classes_, risk_probabilities[0])
-                },
-                'risk_factors': risk_factors,
-                'portfolio_metrics': {
-                    'volatility': portfolio_volatility,
-                    'beta': portfolio_beta,
-                    'sharpe_ratio': portfolio_sharpe,
-                    'market_correlation': portfolio_market_corr,
-                    'esg_risk_score': portfolio_esg_risk,
-                    'sector_volatility': portfolio_sector_vol,
-                    'liquidity_ratio': portfolio_liquidity
-                }
-            }
-        except Exception as e:
-            print(f"Error in risk prediction: {str(e)}")
-            # Fallback to simple risk calculation based on volatility
-            risk_score = portfolio_volatility * 100
-            if risk_score < 25:
-                risk_category = 'Low'
-            elif risk_score < 50:
-                risk_category = 'Moderate'
-            elif risk_score < 75:
-                risk_category = 'High'
-            else:
-                risk_category = 'Very High'
-
-            return {
-                'risk_category': risk_category,
-                'risk_score': risk_score,
-                'error': str(e),
-                'portfolio_metrics': {
-                    'volatility': portfolio_volatility,
-                    'beta': portfolio_beta,
-                    'sharpe_ratio': portfolio_sharpe,
-                    'market_correlation': portfolio_market_corr,
-                    'esg_risk_score': portfolio_esg_risk,
-                    'sector_volatility': portfolio_sector_vol,
-                    'liquidity_ratio': portfolio_liquidity
-                }
-            }
     except Exception as e:
-        print(f"Error in risk assessment: {str(e)}")
-        # Fallback to simple risk calculation
+        print(f"Error in assess_portfolio_risk: {str(e)}")
+        # Return default risk assessment
         return {
-            'risk_category': 'Moderate',
             'risk_score': 50,
-            'error': str(e)
+            'risk_category': '🟡 Medium Risk',
+            'risk_breakdown': {
+                'Market Risk': 0.5,
+                'ESG Risk': 0.5,
+                'Sector Risk': 0.5,
+                'Liquidity Risk': 0.5
+            },
+            'risk_factors': {
+                'Market Risk': 50,
+                'ESG Risk': 50,
+                'Sector Risk': 50,
+                'Liquidity Risk': 50
+            },
+            'recommendations': ['Unable to calculate specific risk factors']
         }

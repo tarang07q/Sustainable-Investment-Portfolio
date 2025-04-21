@@ -538,7 +538,7 @@ if st.button("Generate ML Recommendations"):
     all_assets_df = pd.DataFrame(all_assets)
 
     # Get ML recommendations
-    ml_recommendations = get_ml_portfolio_recommendations(assets_df, all_assets_df, user_preferences)
+    ml_recommendations = get_ml_portfolio_recommendations(all_assets_df, user_preferences)
 
     # Display ML recommendations
     display_ml_recommendations(ml_recommendations, theme_colors)

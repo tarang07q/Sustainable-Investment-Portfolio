@@ -518,8 +518,6 @@ else:
         """, unsafe_allow_html=True)
 
 # Quote section
-
-# Display a random quote
 quote = get_random_quote()
 st.markdown(f"""
 <div style="margin: 2rem 0; padding-left: 2rem; border-left: 3px solid #4CAF50;">
