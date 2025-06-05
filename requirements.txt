@@ -11,7 +11,7 @@ plotly>=5.18.0
 pillow>=10.0.0
 
 # Data sources
-supabase-py>=2.0.0
+supabase-py>=1.0.0
 yfinance>=0.2.36
 
 # Authentication
