@@ -8,7 +8,7 @@ from datetime import datetime
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from utils.supabase import is_authenticated, get_current_user
+# from utils.supabase import is_authenticated, get_current_user
 from utils.quotes import get_random_quote
 from utils.financial_data import get_all_assets, get_market_trends
 from utils.theme import apply_theme_css
@@ -392,6 +392,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Check if user is authenticated
+def is_authenticated():
+    return 'user' in st.session_state and st.session_state.user is not None
+
+def get_current_user():
+    return st.session_state.get('user', None)
+
 if not is_authenticated():
     # Authentication button
     st.markdown("""

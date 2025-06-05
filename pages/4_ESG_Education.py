@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 import sys
 import os
 
+def is_authenticated():
+    return 'user' in st.session_state and st.session_state.user is not None
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -30,7 +32,7 @@ theme_card_bg = "#262730"  # Dark card background
 # This page is accessible without login
 
 # Import authentication utilities to check if user is logged in
-from utils.supabase import is_authenticated, get_current_user
+# from utils.supabase import is_authenticated, get_current_user
 
 # Set Plotly theme to dark mode
 plotly_template = "plotly_dark"
@@ -889,3 +891,6 @@ with tabs[3]:
             st.session_state.quiz_score = 0
             st.session_state.quiz_completed = False
             st.rerun()
+
+def is_authenticated():
+    return 'user' in st.session_state and st.session_state.user is not None

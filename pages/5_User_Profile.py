@@ -5,7 +5,7 @@ import os
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.supabase import is_authenticated, get_current_user, update_profile, sign_out
+# from utils.supabase import is_authenticated, get_current_user, update_profile, sign_out
 from utils.quotes import get_random_finance_quote
 
 # Set page config
@@ -281,6 +281,31 @@ st.markdown(f"""
     }}
     </style>
 """, unsafe_allow_html=True)
+
+# Demo stubs for authentication and user management
+def is_authenticated():
+    return 'user' in st.session_state and st.session_state.user is not None
+
+def get_current_user():
+    return st.session_state.get('user', None)
+
+def update_profile(full_name, user_profile_data=None):
+    if 'user' in st.session_state:
+        st.session_state.user['full_name'] = full_name
+        if user_profile_data:
+            if 'preferences' not in st.session_state.user:
+                st.session_state.user['preferences'] = {}
+            for key, value in user_profile_data.items():
+                if key != 'full_name':
+                    st.session_state.user['preferences'][key] = value
+        return True, "Demo Mode: Profile updated successfully!"
+    else:
+        return False, "No user is currently signed in."
+
+def sign_out():
+    if 'user' in st.session_state:
+        del st.session_state.user
+    return True, "Successfully signed out!"
 
 # Check if user is authenticated
 if not is_authenticated():

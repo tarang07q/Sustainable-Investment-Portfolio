@@ -1,5 +1,7 @@
 import streamlit as st
-from utils.supabase import is_authenticated
+
+def is_authenticated():
+    return 'user' in st.session_state and st.session_state.user is not None
 
 def check_authentication():
     """

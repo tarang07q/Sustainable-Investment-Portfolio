@@ -5,7 +5,35 @@ import os
 # Add the parent directory to the path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.supabase import sign_up, sign_in, is_authenticated, get_current_user
+# from utils.supabase import sign_up, sign_in, is_authenticated, get_current_user
+
+# --- Demo authentication stubs (no supabase required) ---
+def is_authenticated():
+    return 'user' in st.session_state and st.session_state.user is not None
+
+def get_current_user():
+    return st.session_state.get('user', None)
+
+def sign_in(email, password):
+    # Accept any email/password for demo
+    user = {
+        "id": "demo-user-id",
+        "email": email,
+        "full_name": email.split('@')[0].title(),
+        "created_at": "2023-04-10T00:00:00.000Z"
+    }
+    st.session_state.user = user
+    return True, "Demo Mode: Successfully signed in!"
+
+def sign_up(email, password, full_name):
+    user = {
+        "id": "demo-user-id",
+        "email": email,
+        "full_name": full_name,
+        "created_at": "2023-04-10T00:00:00.000Z"
+    }
+    st.session_state.user = user
+    return True, "Demo Mode: Successfully signed up!"
 
 # Set page config
 st.set_page_config(
