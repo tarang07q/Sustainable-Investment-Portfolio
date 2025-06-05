@@ -27,7 +27,7 @@ class PortfolioRecommender:
         self.feature_columns = [
             'market_cap', 'volatility', 'roi_1y',
             'esg_score', 'environmental_score',
-            'social_score', 'governance_score'
+            'social_score', 'governance_score', 'price_change_24h'
         ]
 
         # Create model directory if it doesn't exist
@@ -43,44 +43,94 @@ class PortfolioRecommender:
     def preprocess_data(self, data: pd.DataFrame) -> np.ndarray:
         """
         Preprocess the input data for the model.
-        
+
         Args:
             data (pd.DataFrame): Raw input data
-            
+
         Returns:
             np.ndarray: Preprocessed features
         """
-        # Select relevant features
-        features = data[self.feature_columns].copy()
-        
+        # Normalize column names (case-insensitive)
+        data_normalized = data.copy()
+        data_normalized.columns = [col.lower() for col in data_normalized.columns]
+
+        # Create a DataFrame with the required features
+        features = pd.DataFrame(index=data_normalized.index)
+
+        # Map of possible column names for each feature
+        column_mappings = {
+            'market_cap': ['market_cap', 'market_cap_b', 'cap', 'size'],
+            'volatility': ['volatility', 'vol', 'risk'],
+            'roi_1y': ['roi_1y', 'roi', 'return_1y', 'annual_return'],
+            'esg_score': ['esg_score', 'esg', 'sustainability_score'],
+            'environmental_score': ['environmental_score', 'environmental', 'env_score'],
+            'social_score': ['social_score', 'social', 'soc_score'],
+            'governance_score': ['governance_score', 'governance', 'gov_score'],
+            'price_change_24h': ['price_change_24h', 'price_change', 'daily_change', 'change_24h']
+        }
+
+        # Find and map columns
+        for feature, possible_names in column_mappings.items():
+            # Try to find a matching column
+            found = False
+            for name in possible_names:
+                if name in data_normalized.columns:
+                    features[feature] = data_normalized[name]
+                    found = True
+                    break
+
+            # If not found in lowercase, try original case
+            if not found:
+                for name in possible_names:
+                    capitalized_name = name.capitalize()
+                    if capitalized_name in data.columns:
+                        features[feature] = data[capitalized_name]
+                        found = True
+                        break
+
+            # If still not found, use a default value
+            if not found:
+                if feature == 'market_cap':
+                    features[feature] = 10  # Default market cap
+                elif feature == 'volatility':
+                    features[feature] = 0.3  # Default volatility
+                elif feature == 'roi_1y':
+                    features[feature] = 10  # Default ROI
+                elif feature == 'esg_score':
+                    features[feature] = 50  # Default ESG score
+                elif feature in ['environmental_score', 'social_score', 'governance_score']:
+                    features[feature] = 50  # Default component scores
+                elif feature == 'price_change_24h':
+                    features[feature] = 0.0  # Default price change
+
         # Handle missing values
         features = features.fillna(features.mean())
-        
+
         # Scale features
         scaled_features = self.scaler.fit_transform(features)
-        
+
         return scaled_features
 
     def train(self, data: pd.DataFrame, target: str = 'performance_score'):
         """
         Train the model on historical data.
-        
+
         Args:
             data (pd.DataFrame): Training data
             target (str): Target variable name
         """
         X = self.preprocess_data(data)
         y = data[target]
-        
+
         self.model.fit(X, y)
 
     def predict(self, data: pd.DataFrame) -> np.ndarray:
         """
         Generate predictions for new data.
-        
+
         Args:
             data (pd.DataFrame): Input data
-            
+
         Returns:
             np.ndarray: Predicted scores
         """
@@ -95,32 +145,32 @@ class PortfolioRecommender:
     ) -> List[Dict[str, Any]]:
         """
         Generate personalized investment recommendations.
-        
+
         Args:
             all_assets (pd.DataFrame): Available assets data
             user_preferences (Dict[str, Any]): User preferences
             top_n (int): Number of recommendations to generate
-            
+
         Returns:
             List[Dict[str, Any]]: Ranked recommendations
         """
         # Get base predictions
         base_scores = self.predict(all_assets)
-        
+
         # Adjust scores based on user preferences
         adjusted_scores = self._adjust_scores(
             base_scores,
             all_assets,
             user_preferences
         )
-        
+
         # Rank and select top recommendations
         recommendations = self._rank_recommendations(
             all_assets,
             adjusted_scores,
             top_n
         )
-        
+
         return recommendations
 
     def _adjust_scores(
@@ -131,12 +181,12 @@ class PortfolioRecommender:
     ) -> np.ndarray:
         """
         Adjust prediction scores based on user preferences.
-        
+
         Args:
             base_scores (np.ndarray): Base model predictions
             assets (pd.DataFrame): Asset data
             preferences (Dict[str, Any]): User preferences
-            
+
         Returns:
             np.ndarray: Adjusted scores
         """
@@ -144,12 +194,12 @@ class PortfolioRecommender:
         risk_weight = (11 - preferences['risk_tolerance']) / 10
         esg_weight = preferences['sustainability_focus'] / 10
         return_weight = 1 - risk_weight - esg_weight/2
-        
+
         # Calculate component scores
         risk_scores = 1 - assets['volatility']
         esg_scores = assets['esg_score'] / 100
         return_scores = assets['roi_1y'] / 100
-        
+
         # Combine scores
         adjusted_scores = (
             base_scores * 0.4 +
@@ -157,7 +207,7 @@ class PortfolioRecommender:
             esg_scores * esg_weight * 0.2 +
             return_scores * return_weight * 0.2
         )
-        
+
         return adjusted_scores
 
     def _rank_recommendations(
@@ -168,22 +218,22 @@ class PortfolioRecommender:
     ) -> List[Dict[str, Any]]:
         """
         Rank assets and create recommendation objects.
-        
+
         Args:
             assets (pd.DataFrame): Asset data
             scores (np.ndarray): Adjusted prediction scores
             top_n (int): Number of recommendations to return
-            
+
         Returns:
             List[Dict[str, Any]]: Ranked recommendations
         """
         # Create DataFrame with scores
         ranked_assets = assets.copy()
         ranked_assets['score'] = scores
-        
+
         # Sort by score
         ranked_assets = ranked_assets.sort_values('score', ascending=False)
-        
+
         # Select top N recommendations
         top_recommendations = []
         for _, asset in ranked_assets.head(top_n).iterrows():
@@ -200,16 +250,16 @@ class PortfolioRecommender:
                 'recommendation_strength': self._get_recommendation_strength(asset['score'])
             }
             top_recommendations.append(recommendation)
-        
+
         return top_recommendations
 
     def _get_recommendation_strength(self, score: float) -> str:
         """
         Convert score to recommendation strength category.
-        
+
         Args:
             score (float): Recommendation score
-            
+
         Returns:
             str: Recommendation strength category
         """
@@ -227,7 +277,7 @@ class PortfolioRecommender:
     def get_feature_importance(self) -> Dict[str, float]:
         """
         Get feature importance scores.
-        
+
         Returns:
             Dict[str, float]: Feature importance scores
         """
@@ -241,25 +291,25 @@ class PortfolioRecommender:
     ) -> Dict[str, float]:
         """
         Evaluate model performance on test data.
-        
+
         Args:
             test_data (pd.DataFrame): Test data
             target (str): Target variable name
-            
+
         Returns:
             Dict[str, float]: Performance metrics
         """
         from sklearn.metrics import mean_squared_error, r2_score
-        
+
         # Generate predictions
         X_test = self.preprocess_data(test_data)
         y_test = test_data[target]
         y_pred = self.model.predict(X_test)
-        
+
         # Calculate metrics
         mse = mean_squared_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
-        
+
         return {
             'mse': mse,
             'rmse': np.sqrt(mse),
@@ -342,10 +392,53 @@ def get_portfolio_recommendations(portfolio_assets, all_assets, user_preferences
     # Prepare data for prediction
     prediction_data = all_assets.copy()
 
+    # Normalize column names for consistent access
+    prediction_data_normalized = prediction_data.copy()
+    prediction_data_normalized.columns = [col.lower() for col in prediction_data_normalized.columns]
+
+    # Ensure we have a ticker column
+    ticker_col = None
+    for col_name in ['ticker', 'symbol', 'id']:
+        if col_name in prediction_data_normalized.columns:
+            ticker_col = col_name
+            break
+
+    # If no ticker column found in lowercase, try original case
+    if ticker_col is None:
+        for col_name in ['Ticker', 'Symbol', 'ID']:
+            if col_name in prediction_data.columns:
+                ticker_col = col_name
+                break
+
+    # If still no ticker column, create a dummy one
+    if ticker_col is None:
+        prediction_data['ticker'] = [f'ASSET_{i}' for i in range(len(prediction_data))]
+        ticker_col = 'ticker'
+
     # Filter out assets already in portfolio
     if not portfolio_assets.empty:
-        portfolio_tickers = portfolio_assets['ticker'].unique()
-        prediction_data = prediction_data[~prediction_data['ticker'].isin(portfolio_tickers)]
+        # Normalize portfolio column names
+        portfolio_normalized = portfolio_assets.copy()
+        portfolio_normalized.columns = [col.lower() for col in portfolio_normalized.columns]
+
+        # Find ticker column in portfolio
+        portfolio_ticker_col = None
+        for col_name in ['ticker', 'symbol', 'id']:
+            if col_name in portfolio_normalized.columns:
+                portfolio_ticker_col = col_name
+                break
+
+        # If no ticker column found in lowercase, try original case
+        if portfolio_ticker_col is None:
+            for col_name in ['Ticker', 'Symbol', 'ID']:
+                if col_name in portfolio_assets.columns:
+                    portfolio_ticker_col = col_name
+                    break
+
+        # Filter only if we found ticker columns in both dataframes
+        if portfolio_ticker_col is not None:
+            portfolio_tickers = portfolio_assets[portfolio_ticker_col].unique()
+            prediction_data = prediction_data[~prediction_data[ticker_col].isin(portfolio_tickers)]
 
     # Apply user preferences
     # Risk tolerance (1-10)

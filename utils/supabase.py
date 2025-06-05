@@ -190,13 +190,25 @@ def get_current_user():
     return None
 
 # Update user profile
-def update_profile(full_name):
+def update_profile(full_name, user_profile_data=None):
     supabase = init_supabase()
 
     if supabase is None:
         # Demo mode - simulate successful profile update
         if 'user' in st.session_state:
+            # Update the full name
             st.session_state.user["full_name"] = full_name
+
+            # Store all user preferences in session state if provided
+            if user_profile_data:
+                if 'preferences' not in st.session_state.user:
+                    st.session_state.user['preferences'] = {}
+
+                # Update all preferences
+                for key, value in user_profile_data.items():
+                    if key != 'full_name':  # full_name is already updated
+                        st.session_state.user['preferences'][key] = value
+
             return True, "Demo Mode: Profile updated successfully!"
         else:
             return False, "No user is currently signed in."
@@ -206,15 +218,33 @@ def update_profile(full_name):
         if 'user' in st.session_state:
             user_id = st.session_state.user["id"]
 
+            # Prepare data to update
+            update_data = {"full_name": full_name}
+
+            # Add all other profile data if provided
+            if user_profile_data:
+                for key, value in user_profile_data.items():
+                    if key != 'full_name':  # full_name is already included
+                        update_data[key] = value
+
             # Update user metadata
             supabase.auth.update_user({
-                "data": {
-                    "full_name": full_name
-                }
+                "data": update_data
             })
 
             # Update session state
             st.session_state.user["full_name"] = full_name
+
+            # Store all user preferences in session state if provided
+            if user_profile_data:
+                if 'preferences' not in st.session_state.user:
+                    st.session_state.user['preferences'] = {}
+
+                # Update all preferences
+                for key, value in user_profile_data.items():
+                    if key != 'full_name':  # full_name is already updated
+                        st.session_state.user['preferences'][key] = value
+
             return True, "Profile updated successfully!"
         else:
             return False, "No user is currently signed in."

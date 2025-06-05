@@ -139,6 +139,7 @@ st.markdown("""
         border-radius: 10px;
         padding: 1.5rem;
         height: 100%;
+        min-height: 300px; /* Set a minimum height for all cards */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         display: flex;
         flex-direction: column;
@@ -747,7 +748,7 @@ st.markdown(f"""
             <span>Alpha Vantage - Market Data</span>
         </div>
     </a>
-    <a href="https://www.kaggle.com/datasets/debashish311601/esg-scores-and-ratings" target="_blank" style="text-decoration: none; color: inherit;">
+    <a href="https://www.kaggle.com/datasets/alistairking/public-company-esg-ratings-dataset" target="_blank" style="text-decoration: none; color: inherit;">
         <div class="data-source-item">
             <span style="font-size: 1.2rem;">🌿</span>
             <span>Kaggle - ESG Scores Dataset</span>

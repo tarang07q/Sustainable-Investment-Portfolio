@@ -84,9 +84,38 @@ class RiskAssessor:
     def _calculate_market_risk(self, portfolio_data: pd.DataFrame) -> float:
         """Calculate market risk based on volatility and beta."""
         try:
-            # Use portfolio volatility as primary market risk indicator
-            volatilities = portfolio_data['Volatility'].fillna(0)
-            weights = portfolio_data['Weight'].fillna(1/len(portfolio_data))
+            # Normalize column names (case-insensitive)
+            portfolio_data_normalized = portfolio_data.copy()
+            portfolio_data_normalized.columns = [col.lower() for col in portfolio_data_normalized.columns]
+
+            # Check for volatility column with different possible names
+            volatility_col = None
+            for col_name in ['volatility', 'vol', 'risk']:
+                if col_name in portfolio_data_normalized.columns:
+                    volatility_col = col_name
+                    break
+
+            # If no volatility column found, try to use uppercase version
+            if volatility_col is None and 'Volatility' in portfolio_data.columns:
+                volatilities = portfolio_data['Volatility'].fillna(0)
+            elif volatility_col is not None:
+                volatilities = portfolio_data_normalized[volatility_col].fillna(0)
+            else:
+                # No volatility column found, use default values
+                return 0.5
+
+            # Check for weight column
+            weight_col = None
+            for col_name in ['weight', 'allocation', 'portfolio_weight']:
+                if col_name in portfolio_data_normalized.columns:
+                    weight_col = col_name
+                    break
+
+            # If weight column found, use it; otherwise, assign equal weights
+            if weight_col is not None:
+                weights = portfolio_data_normalized[weight_col].fillna(1/len(portfolio_data))
+            else:
+                weights = pd.Series([1/len(portfolio_data)] * len(portfolio_data))
 
             # Calculate weighted average volatility
             portfolio_volatility = np.sum(volatilities * weights)
@@ -103,9 +132,38 @@ class RiskAssessor:
     def _calculate_esg_risk(self, portfolio_data: pd.DataFrame) -> float:
         """Calculate ESG risk based on ESG scores."""
         try:
-            # Convert ESG scores to risk (lower score = higher risk)
-            esg_scores = portfolio_data['ESG_Score'].fillna(50)
-            weights = portfolio_data['Weight'].fillna(1/len(portfolio_data))
+            # Normalize column names (case-insensitive)
+            portfolio_data_normalized = portfolio_data.copy()
+            portfolio_data_normalized.columns = [col.lower() for col in portfolio_data_normalized.columns]
+
+            # Check for ESG score column with different possible names
+            esg_col = None
+            for col_name in ['esg_score', 'esg', 'sustainability_score', 'environmental_score']:
+                if col_name in portfolio_data_normalized.columns:
+                    esg_col = col_name
+                    break
+
+            # If no ESG column found, try to use uppercase version
+            if esg_col is None and 'ESG_Score' in portfolio_data.columns:
+                esg_scores = portfolio_data['ESG_Score'].fillna(50)
+            elif esg_col is not None:
+                esg_scores = portfolio_data_normalized[esg_col].fillna(50)
+            else:
+                # No ESG column found, use default values
+                return 0.5
+
+            # Check for weight column
+            weight_col = None
+            for col_name in ['weight', 'allocation', 'portfolio_weight']:
+                if col_name in portfolio_data_normalized.columns:
+                    weight_col = col_name
+                    break
+
+            # If weight column found, use it; otherwise, assign equal weights
+            if weight_col is not None:
+                weights = portfolio_data_normalized[weight_col].fillna(1/len(portfolio_data))
+            else:
+                weights = pd.Series([1/len(portfolio_data)] * len(portfolio_data))
 
             # Calculate weighted average ESG risk
             esg_risk = np.sum((100 - esg_scores) / 100 * weights)
@@ -119,16 +177,58 @@ class RiskAssessor:
     def _calculate_sector_risk(self, portfolio_data: pd.DataFrame) -> float:
         """Calculate sector concentration risk."""
         try:
+            # Normalize column names (case-insensitive)
+            portfolio_data_normalized = portfolio_data.copy()
+            portfolio_data_normalized.columns = [col.lower() for col in portfolio_data_normalized.columns]
+
+            # Check for sector column with different possible names
+            sector_col = None
+            for col_name in ['sector', 'industry', 'category']:
+                if col_name in portfolio_data_normalized.columns:
+                    sector_col = col_name
+                    break
+
+            # If no sector column found, try to use uppercase version
+            if sector_col is None and 'Sector' in portfolio_data.columns:
+                sector_col = 'Sector'
+                sector_data = portfolio_data
+            elif sector_col is not None:
+                sector_data = portfolio_data_normalized
+            else:
+                # No sector column found, use default values
+                return 0.5
+
+            # Check for weight column
+            weight_col = None
+            for col_name in ['weight', 'allocation', 'portfolio_weight']:
+                if col_name in portfolio_data_normalized.columns:
+                    weight_col = col_name
+                    break
+
+            # If weight column found, use it; otherwise, assign equal weights
+            if weight_col is None:
+                # Create a weight column with equal weights
+                sector_data = sector_data.copy()
+                weight_col = 'temp_weight'
+                sector_data[weight_col] = 1.0 / len(sector_data)
+
             # Calculate sector concentrations
-            sector_weights = portfolio_data.groupby('Sector')['Weight'].sum()
+            try:
+                sector_weights = sector_data.groupby(sector_col)[weight_col].sum()
 
-            # Higher concentration = higher risk
-            max_sector_weight = sector_weights.max()
+                # Higher concentration = higher risk
+                if not sector_weights.empty:
+                    max_sector_weight = sector_weights.max()
 
-            # Normalize to 0-1 scale (0.5 is considered diversified)
-            sector_risk = min(max_sector_weight / 0.5, 1.0)
+                    # Normalize to 0-1 scale (0.5 is considered diversified)
+                    sector_risk = min(max_sector_weight / 0.5, 1.0)
 
-            return sector_risk
+                    return sector_risk
+                else:
+                    return 0.5
+            except Exception as e:
+                print(f"Error in sector groupby: {str(e)}")
+                return 0.5
 
         except Exception as e:
             print(f"Error calculating sector risk: {str(e)}")
@@ -137,9 +237,38 @@ class RiskAssessor:
     def _calculate_liquidity_risk(self, portfolio_data: pd.DataFrame) -> float:
         """Calculate liquidity risk based on market cap and volume."""
         try:
-            # Use market cap as proxy for liquidity
-            market_caps = portfolio_data['Market_Cap_B'].fillna(1)
-            weights = portfolio_data['Weight'].fillna(1/len(portfolio_data))
+            # Normalize column names (case-insensitive)
+            portfolio_data_normalized = portfolio_data.copy()
+            portfolio_data_normalized.columns = [col.lower() for col in portfolio_data_normalized.columns]
+
+            # Check for market cap column with different possible names
+            market_cap_col = None
+            for col_name in ['market_cap_b', 'market_cap', 'cap', 'size']:
+                if col_name in portfolio_data_normalized.columns:
+                    market_cap_col = col_name
+                    break
+
+            # If no market cap column found, try to use uppercase version
+            if market_cap_col is None and 'Market_Cap_B' in portfolio_data.columns:
+                market_caps = portfolio_data['Market_Cap_B'].fillna(1)
+            elif market_cap_col is not None:
+                market_caps = portfolio_data_normalized[market_cap_col].fillna(1)
+            else:
+                # No market cap column found, use default values
+                return 0.5
+
+            # Check for weight column
+            weight_col = None
+            for col_name in ['weight', 'allocation', 'portfolio_weight']:
+                if col_name in portfolio_data_normalized.columns:
+                    weight_col = col_name
+                    break
+
+            # If weight column found, use it; otherwise, assign equal weights
+            if weight_col is not None:
+                weights = portfolio_data_normalized[weight_col].fillna(1/len(portfolio_data))
+            else:
+                weights = pd.Series([1/len(portfolio_data)] * len(portfolio_data))
 
             # Calculate weighted average liquidity risk
             # Smaller market cap = higher risk
@@ -165,25 +294,114 @@ class RiskAssessor:
         """Identify specific risk factors in the portfolio."""
         risk_factors = []
 
-        # Check sector concentration
-        sector_weights = portfolio_data.groupby('Sector')['Weight'].sum()
-        if sector_weights.max() > 0.3:
-            risk_factors.append(f"High concentration in {sector_weights.idxmax()} sector")
+        try:
+            # Normalize column names (case-insensitive)
+            portfolio_data_normalized = portfolio_data.copy()
+            portfolio_data_normalized.columns = [col.lower() for col in portfolio_data_normalized.columns]
 
-        # Check volatility
-        high_vol_assets = portfolio_data[portfolio_data['Volatility'] > 0.3]
-        if not high_vol_assets.empty:
-            risk_factors.append("High volatility assets present")
+            # Check sector concentration if sector and weight columns exist
+            sector_col = None
+            weight_col = None
 
-        # Check ESG risks
-        low_esg_assets = portfolio_data[portfolio_data['ESG_Score'] < 50]
-        if not low_esg_assets.empty:
-            risk_factors.append("Assets with low ESG scores")
+            # Find sector column
+            for col_name in ['sector', 'industry', 'category']:
+                if col_name in portfolio_data_normalized.columns:
+                    sector_col = col_name
+                    break
+            if sector_col is None and 'Sector' in portfolio_data.columns:
+                sector_col = 'Sector'
+                sector_data = portfolio_data
+            else:
+                sector_data = portfolio_data_normalized
 
-        # Check market cap (liquidity)
-        small_cap_assets = portfolio_data[portfolio_data['Market_Cap_B'] < 1]
-        if not small_cap_assets.empty:
-            risk_factors.append("Small-cap assets present")
+            # Find weight column
+            for col_name in ['weight', 'allocation', 'portfolio_weight']:
+                if col_name in portfolio_data_normalized.columns:
+                    weight_col = col_name
+                    break
+
+            # Check sector concentration if both columns exist
+            if sector_col is not None:
+                if weight_col is None:
+                    # Create temporary weight column
+                    sector_data = sector_data.copy()
+                    weight_col = 'temp_weight'
+                    sector_data[weight_col] = 1.0 / len(sector_data)
+
+                try:
+                    sector_weights = sector_data.groupby(sector_col)[weight_col].sum()
+                    if not sector_weights.empty and sector_weights.max() > 0.3:
+                        risk_factors.append(f"High concentration in {sector_weights.idxmax()} sector")
+                except Exception as e:
+                    print(f"Error checking sector concentration: {str(e)}")
+
+            # Check volatility if column exists
+            vol_col = None
+            for col_name in ['volatility', 'vol', 'risk']:
+                if col_name in portfolio_data_normalized.columns:
+                    vol_col = col_name
+                    break
+            if vol_col is None and 'Volatility' in portfolio_data.columns:
+                vol_col = 'Volatility'
+                vol_data = portfolio_data
+            else:
+                vol_data = portfolio_data_normalized
+
+            if vol_col is not None:
+                try:
+                    high_vol_assets = vol_data[vol_data[vol_col] > 0.3]
+                    if not high_vol_assets.empty:
+                        risk_factors.append("High volatility assets present")
+                except Exception as e:
+                    print(f"Error checking volatility: {str(e)}")
+
+            # Check ESG risks if column exists
+            esg_col = None
+            for col_name in ['esg_score', 'esg', 'sustainability_score']:
+                if col_name in portfolio_data_normalized.columns:
+                    esg_col = col_name
+                    break
+            if esg_col is None and 'ESG_Score' in portfolio_data.columns:
+                esg_col = 'ESG_Score'
+                esg_data = portfolio_data
+            else:
+                esg_data = portfolio_data_normalized
+
+            if esg_col is not None:
+                try:
+                    low_esg_assets = esg_data[esg_data[esg_col] < 50]
+                    if not low_esg_assets.empty:
+                        risk_factors.append("Assets with low ESG scores")
+                except Exception as e:
+                    print(f"Error checking ESG scores: {str(e)}")
+
+            # Check market cap (liquidity) if column exists
+            cap_col = None
+            for col_name in ['market_cap_b', 'market_cap', 'cap', 'size']:
+                if col_name in portfolio_data_normalized.columns:
+                    cap_col = col_name
+                    break
+            if cap_col is None and 'Market_Cap_B' in portfolio_data.columns:
+                cap_col = 'Market_Cap_B'
+                cap_data = portfolio_data
+            else:
+                cap_data = portfolio_data_normalized
+
+            if cap_col is not None:
+                try:
+                    small_cap_assets = cap_data[cap_data[cap_col] < 1]
+                    if not small_cap_assets.empty:
+                        risk_factors.append("Small-cap assets present")
+                except Exception as e:
+                    print(f"Error checking market cap: {str(e)}")
+
+            # If no risk factors identified, add a default one
+            if not risk_factors:
+                risk_factors.append("No specific risk factors identified")
+
+        except Exception as e:
+            print(f"Error identifying risk factors: {str(e)}")
+            risk_factors.append("Unable to analyze risk factors")
 
         return risk_factors
 
