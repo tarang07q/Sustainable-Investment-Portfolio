@@ -144,8 +144,8 @@ class PortfolioRecommender:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ml-portfolio-manager.git
-cd ml-portfolio-manager
+git clone https://github.com/yourusername/Sustainable-Investment-Portfolio.git
+cd Sustainable-Investment-Portfolio
 ```
 
 2. Install dependencies:
